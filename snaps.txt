@@ -1,0 +1,6 @@
+bare
+core20
+gnome-3-38-2004
+gtk-common-themes
+ivpn
+snapd
