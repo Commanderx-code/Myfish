@@ -225,6 +225,73 @@ function dirsize
     du -sh .
 end
 
+# -----------------------------
+# EZA (modern ls replacement)
+# -----------------------------
+
+# -----------------------------
+# EZA (modern ls replacement)
+# -----------------------------
+
+# Keep colors consistent everywhere
+set -Ux EZA_COLORS \
+"da=1;34:\
+di=1;36:\
+fi=0;37:\
+ex=1;32:\
+*.zip=1;31:\
+*.tar=1;31:\
+*.gz=1;31:\
+*.jpg=1;35:\
+*.png=1;35"
+
+# Basic replacement
+alias ls="eza --icons --group-directories-first --colour=always"
+
+# Long listing
+alias ll="eza -lh --icons --group-directories-first --time-style=long-iso"
+
+# All files (including hidden)
+alias la="eza -lha --icons --group-directories-first"
+
+# Tree view
+alias tree="eza --tree --level=2 --icons"
+
+# Sort variations
+alias lx="eza -lh --sort=extension --icons"
+alias lk="eza -lh --sort=size --icons"
+alias lt="eza -lh --sort=modified --icons"
+
+# List only directories / files
+alias ldir="eza -l --icons --filter=dir"
+alias lf="eza -l --icons --filter=file"
+
+# Git-aware listing
+alias lg="eza -l --git --icons"
+
+# One-column list
+alias l1="eza -1 --icons"
+
+# Recursive list
+alias lr="eza -R --icons"
+
+# -----------------------------
+# FZF + EZA Preview Integration
+# -----------------------------
+
+set -Ux NNN_FIFO /tmp/nnn.fifo
+set -Ux NNN_OPTS "e"
+set -Ux FZF_DEFAULT_COMMAND "eza --icons --recurse --ignore-glob=.git --color=always"
+set -Ux FZF_DEFAULT_OPTS "--ansi --preview 'eza --icons --tree --level=3 --color=always {} | head -200'"
+
+function fcd
+    set dir (eza -D --color=always | fzf)
+    cd $dir
+end
+
+
+
+
 
 
 
