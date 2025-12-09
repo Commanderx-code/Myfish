@@ -4,6 +4,9 @@
 # MyFish Automatic Git Sync
 # -----------------------------
 
+# Cleanup logs older than 7 days
+find "$HOME/MyFish" -name "autosync.log*" -mtime +7 -delete
+
 REPO_DIR="$HOME/MyFish"
 LOG_FILE="$HOME/MyFish/autosync.log"
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -30,3 +33,10 @@ git push >> "$LOG_FILE" 2>&1
 
 # Log success
 echo "$TIMESTAMP | Sync completed successfully." >> "$LOG_FILE"
+
+if [ $? -eq 0 ]; then
+    notify-send "MyFish Sync" "Sync completed successfully." --icon=dialog-information
+else
+    notify-send "MyFish Sync" "Sync failed — check the logs." --icon=dialog-error
+fi
+
