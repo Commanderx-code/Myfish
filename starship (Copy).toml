@@ -36,33 +36,10 @@ style_root = "bg:#3B4252"
 format = '[$user ]($style)'
 
 [directory]
-style = "cyan bold"
-read_only = " "
+style = "bg:#434C5E"
+format = "[ $path ]($style)"
 truncation_length = 3
-truncate_to_repo = true
-format = "[$path]($style)[$read_only]($read_only_style) "
-
-[git_branch]
-symbol = " "
-style = "purple bold"
-
-[git_status]
-style = "yellow"
-conflicted = ""
-ahead = "⇡"
-behind = "⇣"
-diverged = "⇕"
-untracked = "?"
-stashed = ""
-modified = "!"
-staged = "+"
-renamed = "»"
-deleted = "✘"
-
-[character]
-success_symbol = "[❯](green bold)"
-error_symbol = "[❯](red bold)"
-
+truncation_symbol = "…/"
 
 # Here is how you can shorten some long paths by text replacement
 # similar to mapped_locations in Oh My Posh:
