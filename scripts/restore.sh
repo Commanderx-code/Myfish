@@ -1,38 +1,38 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🔁 Restoring terminal environment..."
+echo "🔓 Decrypting secrets..."
+~/MyFish/scripts/decrypt_secrets.sh
 
-# Install base tools
-sudo apt update
-sudo apt install -y fish nala git curl fzf fastfetch flatpak snapd
+echo "🔧 Restoring SSH keys..."
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+cp ~/MyFish/secrets_plain/ssh_id_rsa ~/.ssh/id_rsa 2>/dev/null || true
+cp ~/MyFish/secrets_plain/ssh_id_rsa_pub ~/.ssh/id_rsa.pub 2>/dev/null || true
+cp ~/MyFish/secrets_plain/ssh_config ~/.ssh/config 2>/dev/null || true
+chmod 600 ~/.ssh/id_rsa 2>/dev/null || true
+chmod 644 ~/.ssh/id_rsa.pub 2>/dev/null || true
+chmod 600 ~/.ssh/config 2>/dev/null || true
 
-# Install user packages
-if [ -f packages.txt ]; then
-  sudo xargs -a packages.txt nala install -y
-fi
+echo "📶 Restoring Wi-Fi profiles..."
+sudo cp ~/MyFish/secrets_plain/*.nmconnection /etc/NetworkManager/system-connections/ 2>/dev/null || true
+sudo chmod 600 /etc/NetworkManager/system-connections/*.nmconnection 2>/dev/null || true
+sudo systemctl restart NetworkManager || true
 
-# Install flatpaks
-if [ -f flatpaks.txt ]; then
-  xargs -a flatpaks.txt flatpak install -y flathub
-fi
+echo "🎨 Restoring Configurations..."
+cp -r ~/MyFish/fish ~/.config/
+cp -r ~/MyFish/fastfetch ~/.config/
+cp -r ~/MyFish/ranger ~/.config/
+cp ~/MyFish/starship.toml ~/.config/ 2>/dev/null || true
 
-# Install snaps
-if [ -f snaps.txt ]; then
-  sudo xargs -a snaps.txt snap install
-fi
+echo "📦 Installing APT packages..."
+xargs -a ~/MyFish/packages.txt sudo nala install -y || true
 
-# Restore configs
-mkdir -p ~/.config/fish
-mkdir -p ~/.config/starship
-mkdir -p ~/.config/fastfetch/logos
+echo "📦 Installing Flatpaks..."
+flatpak install -y $(cat ~/MyFish/flatpaks.txt) || true
 
-cp fish/config.fish ~/.config/fish/config.fish
-cp starship/starship.toml ~/.config/starship/starship.toml
-cp fastfetch/config.jsonc ~/.config/fastfetch/config.jsonc
-cp fastfetch/zorin.png ~/.config/fastfetch/logos/zorin.png
+echo "📦 Installing Snaps..."
+xargs -a ~/MyFish/snaps.txt sudo snap install || true
 
-# Set fish as default shell
-chsh -s /usr/bin/fish
+echo "🎉 System Restore Complete!"
 
-echo "✅ Restore complete. Reboot or log out for full effect."
