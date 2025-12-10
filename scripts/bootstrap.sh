@@ -15,4 +15,3 @@ echo "🐟 Setting default shell to fish..."
 chsh -s /usr/bin/fish
 
 echo "🎉 Bootstrap complete — reboot recommended!"
-
