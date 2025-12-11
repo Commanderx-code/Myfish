@@ -1,0 +1,25 @@
+[connection]
+id=Obi-Lan Kenobi_backhaul
+type=wifi
+uuid=f8121416-7c47-4d03-89e1-766b640fa85f
+interface-name=wlp0s20f3
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+#Netplan: passthrough setting
+addr-gen-mode=default
+
+[wifi]
+ssid=Obi-Lan Kenobi_backhaul
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=2YellowLabs08
+#Netplan: passthrough setting
+auth-alg=open
+
+[proxy]

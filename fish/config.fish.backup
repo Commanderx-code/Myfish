@@ -1,5 +1,0 @@
-starship init fish | source
-zoxide init fish | source
-status is-interactive; and fastfetch
-
-

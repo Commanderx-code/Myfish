@@ -1,7 +1,25 @@
-*.swp
-*.bak
-*.tmp
+# Ignore OS files
 .DS_Store
+Thumbs.db
+
+# Ignore compiled files
+*.swp
+*.tmp
+
+# Ignore backup output
 autosync.log
-secrets_plain/
+
+# Ignore sensitive unencrypted secrets
+secrets/plain/*
+
+# Allow encrypted secrets
+!secrets/encrypted/*.gpg
+
+# Ignore build artifacts
+*.iso
+*.img
 *.log
+
+# Ignore Homebrew cache
+brew-cache/
+
