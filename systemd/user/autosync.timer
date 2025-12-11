@@ -1,0 +1,10 @@
+[Unit]
+Description=Auto sync MyFish every 10 minutes
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=10m
+Unit=autosync.service
+
+[Install]
+WantedBy=timers.target
