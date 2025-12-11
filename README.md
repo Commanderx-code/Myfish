@@ -1,43 +1,55 @@
-# MyFish – Personal Linux Environment & Backup
+# CommanderOS – MyFish Environment & Restore Framework
 
-This repo stores my entire terminal/Linux environment in a reproducible, portable way.
+CommanderOS is my personal Linux environment built on top of Zorin / Ubuntu,
+managed through this `MyFish` repo.
 
-- Shell: **fish** + **starship**
-- Terminal goodies: **ranger**, **fastfetch**, **eza**, etc.
-- Package managers: **APT/Nala**, **Homebrew**, **Flatpak**
-- Secrets: **WiFi + SSH**, encrypted with GPG
-- Automation: **systemd user timer** for auto Git sync
+It gives me:
+
+- 🔁 **Full environment restore** on any machine
+- 🌈 **Custom shell + terminal setup** (fish, starship, fastfetch, themes)
+- 📦 **Package restore** (APT/Nala, Flatpak, Homebrew)
+- 💾 **Automated backups** with pruning + dedicated Git branch
+- 🧪 **Custom CommanderOS ISO** that can auto-restore this environment on first boot
+
+This repo is both my **dotfiles** and my **“mini config management system”**.
 
 ---
 
-## Layout
+## 🔧 Repo Layout
 
 ```text
 MyFish/
-  configs/       # dotfiles and visual stuff
-    fish/        # fish config, functions, conf.d, completions
-    fastfetch/   # fastfetch config + logo
-    ranger/      # ranger config
-    starship.toml
-    themes/
-    icons/
-    fonts/
-  pkgs/          # package lists
-    packages.txt
-    brew_packages.txt
-    flatpaks.txt
+  configs/
+    fish/            # config.fish, conf.d, functions, completions
+    fastfetch/       # fastfetch config + logo
+    ranger/          # ranger config
+    starship.toml    # starship prompt config
+    themes/          # GTK/icon/cursor theme files
+    icons/           # extra icon themes
+    fonts/           # nerd fonts & other custom fonts
+
+  pkgs/
+    packages.txt         # APT/Nala package list
+    brew_packages.txt    # Homebrew packages
+    flatpaks.txt         # Flatpak apps
+
   secrets/
-    encrypted/   # *.gpg files (committed)
-    plain/       # decrypted secrets (ignored by git)
+    encrypted/           # (optional) .gpg files
+    plain/               # decrypted secrets (git-ignored)
+
   systemd/
-    user/
-      autosync.service
-      autosync.timer
+    user/                # user-level systemd units (autosync, etc.)
+
   scripts/
-    backup.sh
-    restore.sh
-    rebuild.sh
-    diff_report.sh
-    sync.sh
-    secrets_encrypt.sh
-    secrets_decrypt.sh
+    backup.sh            # backup configs + package lists + archives
+    restore.sh           # restore configs + packages
+    rebuild.sh           # full CommanderOS rebuild on a new system
+    diff_report.sh       # compare live system vs repo
+    sync.sh              # run backup + git sync
+    secrets_encrypt.sh   # (optional) encrypt sensitive files
+    secrets_decrypt.sh   # (optional) decrypt sensitive files
+
+  backups/               # .tar.gz archives of configs + packages
+  autosync.log           # log from sync/autobackup (in .gitignore)
+  README.md
+  .gitignore
