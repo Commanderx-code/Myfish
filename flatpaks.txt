@@ -1,4 +1,0 @@
-com.bitwarden.desktop
-me.proton.Mail
-me.proton.Pass
-org.wezfurlong.wezterm

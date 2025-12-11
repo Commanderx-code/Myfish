@@ -1,5 +1,0 @@
-com.anydesk.Anydesk
-com.bitwarden.desktop
-me.proton.Mail
-me.proton.Pass
-org.filezillaproject.Filezilla

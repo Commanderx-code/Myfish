@@ -1,0 +1,15 @@
+MyFish Diff Report - Thu Dec 11 02:42:55 AM EST 2025
+====================================
+
+[1] APT package diff
+
+[2] Brew package diff
+
+[3] Flatpak app diff
+
+[4] Config dir diffs (fish, ranger, fastfetch)
+Only in /home/commander/.config/fish: config.fish.backup
+Only in /home/commander/.config/fish: fish_variables
+Only in /home/commander/.config/fish: themes
+
+[5] Themes/icons/fonts diffs
