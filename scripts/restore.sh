@@ -1,38 +1,92 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🔓 Decrypting secrets..."
-~/MyFish/scripts/decrypt_secrets.sh
+REPO="$HOME/MyFish"
 
-echo "🔧 Restoring SSH keys..."
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
-cp ~/MyFish/secrets_plain/ssh_id_rsa ~/.ssh/id_rsa 2>/dev/null || true
-cp ~/MyFish/secrets_plain/ssh_id_rsa_pub ~/.ssh/id_rsa.pub 2>/dev/null || true
-cp ~/MyFish/secrets_plain/ssh_config ~/.ssh/config 2>/dev/null || true
-chmod 600 ~/.ssh/id_rsa 2>/dev/null || true
-chmod 644 ~/.ssh/id_rsa.pub 2>/dev/null || true
-chmod 600 ~/.ssh/config 2>/dev/null || true
+echo "[+] Restoring system from $REPO"
 
-echo "📶 Restoring Wi-Fi profiles..."
-sudo cp ~/MyFish/secrets_plain/*.nmconnection /etc/NetworkManager/system-connections/ 2>/dev/null || true
-sudo chmod 600 /etc/NetworkManager/system-connections/*.nmconnection 2>/dev/null || true
-sudo systemctl restart NetworkManager || true
+# -----------------------------
+# Fish configuration
+# -----------------------------
+echo "[+] Restoring Fish configuration..."
+mkdir -p ~/.config/fish
+cp "$REPO/configs/fish/config.fish" ~/.config/fish/ 2>/dev/null || true
+cp "$REPO/configs/fish/fish_plugins" ~/.config/fish/ 2>/dev/null || true
 
-echo "🎨 Restoring Configurations..."
-cp -r ~/MyFish/fish ~/.config/
-cp -r ~/MyFish/fastfetch ~/.config/
-cp -r ~/MyFish/ranger ~/.config/
-cp ~/MyFish/starship.toml ~/.config/ 2>/dev/null || true
+mkdir -p ~/.config/fish/conf.d ~/.config/fish/functions ~/.config/fish/completions
+cp -r "$REPO/configs/fish/conf.d/"* ~/.config/fish/conf.d/ 2>/dev/null || true
+cp -r "$REPO/configs/fish/functions/"* ~/.config/fish/functions/ 2>/dev/null || true
+cp -r "$REPO/configs/fish/completions/"* ~/.config/fish/completions/ 2>/dev/null || true
 
-echo "📦 Installing APT packages..."
-xargs -a ~/MyFish/packages.txt sudo nala install -y || true
+# -----------------------------
+# Fastfetch, Ranger, Starship
+# -----------------------------
+echo "[+] Restoring Fastfetch..."
+mkdir -p ~/.config/fastfetch
+cp -r "$REPO/configs/fastfetch/"* ~/.config/fastfetch/ 2>/dev/null || true
 
-echo "📦 Installing Flatpaks..."
-flatpak install -y $(cat ~/MyFish/flatpaks.txt) || true
+echo "[+] Restoring Ranger..."
+mkdir -p ~/.config/ranger
+cp -r "$REPO/configs/ranger/"* ~/.config/ranger/ 2>/dev/null || true
 
-echo "📦 Installing Snaps..."
-xargs -a ~/MyFish/snaps.txt sudo snap install || true
+echo "[+] Restoring Starship..."
+mkdir -p ~/.config
+cp "$REPO/configs/starship.toml" ~/.config/starship.toml 2>/dev/null || true
 
-echo "🎉 System Restore Complete!"
+# -----------------------------
+# Themes / Icons / Fonts
+# -----------------------------
+echo "[+] Restoring themes/icons/fonts..."
+mkdir -p ~/.themes ~/.icons ~/.local/share/fonts
+
+cp -r "$REPO/configs/themes/"* ~/.themes/ 2>/dev/null || true
+cp -r "$REPO/configs/icons/"* ~/.icons/ 2>/dev/null || true
+cp -r "$REPO/configs/fonts/"* ~/.local/share/fonts/ 2>/dev-null || true
+
+fc-cache -f ~/.local/share/fonts ~/.fonts 2>/dev/null || true
+
+# -----------------------------
+# systemd user units
+# -----------------------------
+echo "[+] Restoring user systemd units..."
+mkdir -p ~/.config/systemd/user
+cp -r "$REPO/systemd/user/"* ~/.config/systemd/user/ 2>/dev/null || true
+systemctl --user daemon-reload || true
+systemctl --user enable --now autosync.timer 2>/dev/null || true
+
+# -----------------------------
+# Secrets (WiFi + SSH)
+# -----------------------------
+if [ -x "$REPO/scripts/secrets_decrypt.sh" ]; then
+    echo "[+] Restoring secrets (WiFi/SSH)..."
+    "$REPO/scripts/secrets_decrypt.sh"
+fi
+
+# -----------------------------
+# Packages
+# -----------------------------
+echo "[+] Restoring APT/Nala packages..."
+if [ -f "$REPO/pkgs/packages.txt" ]; then
+    if command -v nala >/dev/null 2>&1; then
+        xargs -a "$REPO/pkgs/packages.txt" sudo nala install -y || true
+    else
+        xargs -a "$REPO/pkgs/packages.txt" sudo apt install -y || true
+    fi
+fi
+
+if command -v brew >/dev/null 2>&1 && [ -f "$REPO/pkgs/brew_packages.txt" ]; then
+    echo "[+] Restoring Homebrew packages..."
+    while read pkg; do
+        [[ -n "$pkg" ]] && brew install "$pkg"
+    done < "$REPO/pkgs/brew_packages.txt"
+fi
+
+if command -v flatpak >/dev/null 2>&1 && [ -f "$REPO/pkgs/flatpaks.txt" ]; then
+    echo "[+] Restoring Flatpak apps..."
+    while read pkg; do
+        [[ -n "$pkg" ]] && flatpak install -y "$pkg"
+    done < "$REPO/pkgs/flatpaks.txt"
+fi
+
+echo "[✓] Restore complete."
 
