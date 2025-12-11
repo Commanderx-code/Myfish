@@ -23,3 +23,8 @@ secrets/plain/*
 # Ignore Homebrew cache
 brew-cache/
 
+# Never commit secrets to main
+secrets_plain/
+*.nmconnection
+*.gpg
+*.bak
