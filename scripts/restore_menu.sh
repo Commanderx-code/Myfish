@@ -28,24 +28,36 @@ pause() {
 }
 
 choose_backup() {
-    echo "=== Available Backups ==="
-    echo
+echo "=== Available Backups ==="
+echo
+echo
+echo "Preview of backup contents:"
+tar -tzf "$SELECTED_ARCHIVE" | head -n 20
+echo "..."
+echo
 
-    mapfile -t ARCHIVES < <(find "$BACKUP_DIR" -maxdepth 1 -name "*.tar.gz" 2>/dev/null | sort -r)
+mapfile -t ARCHIVES < <(find "$BACKUP_DIR" -maxdepth 1 -name "*.tar.gz" -printf "%T@ %p\n" | sort -nr)
 
-    if [ ${#ARCHIVES[@]} -eq 0 ]; then
-        echo "No backup archives found in $BACKUP_DIR."
-        echo
-        sleep 1
-        return 1
-    fi
+if [ ${#ARCHIVES[@]} -eq 0 ]; then
+    echo "No backups found."
+    sleep 1
+    return 1
+fi
 
-    local i=1
-    for a in "${ARCHIVES[@]}"; do
-        printf "%2d) %s\n" "$i" "$(basename "$a")"
-        ((i++))
-    done
+local i=1
+for line in "${ARCHIVES[@]}"; do
+    TS=$(echo "$line" | cut -d' ' -f1)
+    FILE=$(echo "$line" | cut -d' ' -f2-)
+    DATE=$(date -d "@$TS" "+%Y-%m-%d %H:%M")
+    SIZE=$(du -h "$FILE" | cut -f1)
+    NAME=$(basename "$FILE")
 
+    printf "%2d) %-40s | %6s | %s\n" \
+        "$i" "$NAME" "$SIZE" "$DATE"
+
+    ((i++))
+done
+  
     echo
     read -rp "Select a backup number to restore → " CHOICE
 
