@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -e
+
+MYFISH="$HOME/MyFish"
+BACKUPS="$MYFISH/backups"
+
+command -v zenity >/dev/null || {
+  echo "Zenity not installed"; exit 1
+}
+
+ARCHIVE=$(zenity --file-selection \
+  --title="Select MyFish Backup" \
+  --filename="$BACKUPS/" \
+  --file-filter="*.tar.gz")
+
+[ -z "$ARCHIVE" ] && exit 0
+
+zenity --text-info \
+  --title="Backup Preview" \
+  --width=700 --height=500 \
+  --filename=<(tar -tzf "$ARCHIVE" | head -n 50)
+
+zenity --question \
+  --text="Restore this backup to HOME?"
+
+if [ $? -eq 0 ]; then
+  tar -xzf "$ARCHIVE" -C "$HOME"
+  zenity --info --text="Restore complete"
+fi
