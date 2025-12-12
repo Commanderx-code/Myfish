@@ -1,174 +1,129 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="$HOME/MyFish"
-BACKUP_DIR="$REPO/backups"
-RESTORE_SCRIPT="$REPO/scripts/restore.sh"
-REBUILD_SCRIPT="/usr/local/bin/myfish-rebuild.sh"
-DECRYPT_SCRIPT="$REPO/scripts/secrets_decrypt.sh"
-DIFF_SCRIPT="$REPO/scripts/diff_report.sh"
-LOG="$REPO/restore_menu.log"
+MYFISH_DIR="$HOME/MyFish"
+BACKUP_DIR="$MYFISH_DIR/backups"
+LOG="$MYFISH_DIR/restore.log"
 
-logo() {
-    clear
-    cat <<'EOF'
-   ____                                     _ _           
-  / ___|___  _ __ ___  _ __ ___   ___ _ __ (_) | ___ _ __ 
- | |   / _ \| '_ ` _ \| '_ ` _ \ / _ \ '_ \| | |/ _ \ '__|
- | |__| (_) | | | | | | | | | | |  __/ | | | | |  __/ |   
-  \____\___/|_| |_| |_|_| |_| |_|\___|_| |_|_|_|\___|_|   
+mkdir -p "$BACKUP_DIR"
+touch "$LOG"
 
-                CommanderOS Restore Menu
-EOF
-    echo
+log() {
+    echo "[$(date '+%F %T')] $*" | tee -a "$LOG"
 }
 
 pause() {
-    read -rp "Press ENTER to continue..."
+    read -rp "Press Enter to continue..."
 }
 
-choose_backup() {
-echo "=== Available Backups ==="
-echo
-echo
-echo "Preview of backup contents:"
-tar -tzf "$SELECTED_ARCHIVE" | head -n 20
-echo "..."
-echo
-
-mapfile -t ARCHIVES < <(find "$BACKUP_DIR" -maxdepth 1 -name "*.tar.gz" -printf "%T@ %p\n" | sort -nr)
-
-if [ ${#ARCHIVES[@]} -eq 0 ]; then
-    echo "No backups found."
-    sleep 1
-    return 1
-fi
-
-local i=1
-for line in "${ARCHIVES[@]}"; do
-    TS=$(echo "$line" | cut -d' ' -f1)
-    FILE=$(echo "$line" | cut -d' ' -f2-)
-    DATE=$(date -d "@$TS" "+%Y-%m-%d %H:%M")
-    SIZE=$(du -h "$FILE" | cut -f1)
-    NAME=$(basename "$FILE")
-
-    printf "%2d) %-40s | %6s | %s\n" \
-        "$i" "$NAME" "$SIZE" "$DATE"
-
-    ((i++))
-done
-  
-    echo
-    read -rp "Select a backup number to restore → " CHOICE
-
-    if ! [[ "$CHOICE" =~ ^[0-9]+$ ]] || (( CHOICE < 1 || CHOICE > ${#ARCHIVES[@]} )); then
-        echo "Invalid choice."
-        return 1
-    fi
-
-    SELECTED_ARCHIVE="${ARCHIVES[CHOICE-1]}"
-    echo "Selected: $(basename "$SELECTED_ARCHIVE")"
-    echo
-    return 0
+require_cmd() {
+    command -v "$1" >/dev/null 2>&1 || {
+        echo "❌ Required command not found: $1"
+        exit 1
+    }
 }
 
-decrypt_secrets() {
-    if [ ! -x "$DECRYPT_SCRIPT" ]; then
-        echo "[WARN] No secrets_decrypt.sh script found. Skipping."
-        return
-    fi
+banner() {
+cat <<'EOF'
+   ██████╗ ██████╗ ███╗   ███╗███╗   ███╗ █████╗ ███╗   ██╗██████╗ ███████╗██████╗
+  ██╔════╝██╔═══██╗████╗ ████║████╗ ████║██╔══██╗████╗  ██║██╔══██╗██╔════╝██╔══██╗
+  ██║     ██║   ██║██╔████╔██║██╔████╔██║███████║██╔██╗ ██║██║  ██║█████╗  ██████╔╝
+  ██║     ██║   ██║██║╚██╔╝██║██║╚██╔╝██║██╔══██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗
+  ╚██████╗╚██████╔╝██║ ╚═╝ ██║██║ ╚═╝ ██║██║  ██║██║ ╚████║██████╔╝███████╗██║  ██║
+   ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝
 
-    read -rp "Decrypt secrets before restore? (y/N): " ANSWER
-    if [[ "$ANSWER" =~ ^[Yy] ]]; then
-        echo "[INFO] Decrypting secrets..."
-        bash "$DECRYPT_SCRIPT" | tee -a "$LOG" || echo "[ERROR] Decryption failed."
-    else
-        echo "[INFO] Skipping secrets decryption."
-    fi
+                    Commander Restore Environment
+EOF
 }
 
 restore_backup() {
-    if [ -z "${SELECTED_ARCHIVE:-}" ]; then
-        echo "[ERROR] No archive selected."
-        return 1
+    require_cmd tar
+
+    cd "$BACKUP_DIR" || {
+        echo "❌ Backup directory not found"
+        return
+    }
+
+    if ! ls *.tar.gz >/dev/null 2>&1; then
+        echo "❌ No backups found in $BACKUP_DIR"
+        return
     fi
 
-    echo "[INFO] Extracting backup: $SELECTED_ARCHIVE" | tee -a "$LOG"
-    tar -xzf "$SELECTED_ARCHIVE" -C "$HOME" 2>>"$LOG"
-
-    if [ -x "$RESTORE_SCRIPT" ]; then
-        echo "[INFO] Running restore.sh..." | tee -a "$LOG"
-        bash "$RESTORE_SCRIPT" | tee -a "$LOG"
+    if command -v fzf >/dev/null 2>&1; then
+        SELECTED_ARCHIVE=$(ls *.tar.gz | fzf --prompt="Select backup > ")
     else
-        echo "[WARN] $RESTORE_SCRIPT not found or not executable."
+        echo "Available backups:"
+        select f in *.tar.gz; do
+            SELECTED_ARCHIVE="$f"
+            break
+        done
     fi
+
+    [ -z "${SELECTED_ARCHIVE:-}" ] && {
+        echo "❌ No backup selected"
+        return
+    }
+
+    echo
+    echo "📦 Preview of backup contents:"
+    tar -tzf "$SELECTED_ARCHIVE" | head -n 20
+    echo "..."
+
+    read -rp "⚠️  Restore this backup to your HOME directory? (y/N): " CONFIRM
+    [[ "$CONFIRM" != "y" ]] && return
+
+    log "Restoring backup: $SELECTED_ARCHIVE"
+    tar -xzf "$SELECTED_ARCHIVE" -C "$HOME"
+    log "Restore completed"
+    echo "✅ Restore completed successfully"
+}
+
+decrypt_secrets() {
+    SCRIPT="$MYFISH_DIR/scripts/decrypt_secrets.sh"
+
+    if [ ! -x "$SCRIPT" ]; then
+        echo "❌ decrypt_secrets.sh not found or not executable"
+        return
+    fi
+
+    log "Decrypting secrets"
+    sudo "$SCRIPT"
+    log "Secrets decrypted"
 }
 
 full_rebuild() {
-    if [ ! -x "$REBUILD_SCRIPT" ]; then
-        echo "[WARN] No myfish-rebuild.sh found. Skipping."
+    SCRIPT="$MYFISH_DIR/scripts/rebuild.sh"
+
+    if [ ! -x "$SCRIPT" ]; then
+        echo "❌ rebuild.sh not found or not executable"
         return
     fi
 
-    read -rp "Run full CommanderOS rebuild? (y/N): " ANSWER
-    if [[ "$ANSWER" =~ ^[Yy] ]]; then
-        echo "[INFO] Running full rebuild..." | tee -a "$LOG"
-        sudo bash "$REBUILD_SCRIPT" | tee -a "$LOG"
-    else
-        echo "[INFO] Skipping full rebuild."
-    fi
-}
+    read -rp "⚠️  Run FULL system rebuild? (y/N): " CONFIRM
+    [[ "$CONFIRM" != "y" ]] && return
 
-run_diff_report() {
-    if [ ! -x "$DIFF_SCRIPT" ]; then
-        echo "[WARN] No diff_report.sh found at $DIFF_SCRIPT."
-        return
-    fi
-
-    echo "[INFO] Generating diff report..." | tee -a "$LOG"
-    bash "$DIFF_SCRIPT" | tee -a "$LOG"
+    log "Starting full rebuild"
+    sudo "$SCRIPT"
+    log "Full rebuild finished"
 }
 
 while true; do
-    logo
+    clear
+    banner
+    echo
     echo "1) Restore from backup archive"
     echo "2) Decrypt secrets only"
     echo "3) Run full system rebuild"
-    echo "4) Generate diff report"
-    echo "5) Exit"
+    echo "4) Exit"
     echo
-    read -rp "Select an option → " OPT
+    read -rp "Select option: " CHOICE
 
-    case "$OPT" in
-        1)
-            if choose_backup; then
-                decrypt_secrets
-                restore_backup
-                full_rebuild
-                run_diff_report
-                pause
-            fi
-            ;;
-        2)
-            decrypt_secrets
-            pause
-            ;;
-        3)
-            full_rebuild
-            pause
-            ;;
-        4)
-            run_diff_report
-            pause
-            ;;
-        5)
-            echo "Exiting."
-            exit 0
-            ;;
-        *)
-            echo "Invalid selection."
-            sleep 1
-            ;;
+    case "$CHOICE" in
+        1) restore_backup; pause ;;
+        2) decrypt_secrets; pause ;;
+        3) full_rebuild; pause ;;
+        4) exit 0 ;;
+        *) echo "Invalid option"; pause ;;
     esac
 done
 
