@@ -4,23 +4,34 @@ set -euo pipefail
 REPO="$HOME/MyFish"
 BACKUP_DIR="$REPO/backups"
 RESTORE_SCRIPT="$REPO/scripts/restore.sh"
-DECRYPT_SCRIPT="$REPO/scripts/secrets_decrypt.sh"
 REBUILD_SCRIPT="/usr/local/bin/myfish-rebuild.sh"
+DECRYPT_SCRIPT="$REPO/scripts/secrets_decrypt.sh"
+DIFF_SCRIPT="$REPO/scripts/diff_report.sh"
+LOG="$REPO/restore_menu.log"
 
-TITLE="CommanderOS Restore Menu"
+logo() {
+    clear
+    cat <<'EOF'
+   ____                                     _ _           
+  / ___|___  _ __ ___  _ __ ___   ___ _ __ (_) | ___ _ __ 
+ | |   / _ \| '_ ` _ \| '_ ` _ \ / _ \ '_ \| | |/ _ \ '__|
+ | |__| (_) | | | | | | | | | | |  __/ | | | | |  __/ |   
+  \____\___/|_| |_| |_|_| |_| |_|\___|_| |_|_|_|\___|_|   
+
+                CommanderOS Restore Menu
+EOF
+    echo
+}
 
 pause() {
     read -rp "Press ENTER to continue..."
 }
 
-# -------------------------------------------------------------------
-# 1. Load backup archives
-# -------------------------------------------------------------------
 choose_backup() {
     echo "=== Available Backups ==="
     echo
 
-    mapfile -t ARCHIVES < <(find "$BACKUP_DIR" -maxdepth 1 -name "*.tar.gz" | sort -r)
+    mapfile -t ARCHIVES < <(find "$BACKUP_DIR" -maxdepth 1 -name "*.tar.gz" 2>/dev/null | sort -r)
 
     if [ ${#ARCHIVES[@]} -eq 0 ]; then
         echo "No backup archives found in $BACKUP_DIR."
@@ -31,7 +42,7 @@ choose_backup() {
 
     local i=1
     for a in "${ARCHIVES[@]}"; do
-        echo "$i) $(basename "$a")"
+        printf "%2d) %s\n" "$i" "$(basename "$a")"
         ((i++))
     done
 
@@ -45,71 +56,74 @@ choose_backup() {
 
     SELECTED_ARCHIVE="${ARCHIVES[CHOICE-1]}"
     echo "Selected: $(basename "$SELECTED_ARCHIVE")"
+    echo
     return 0
 }
 
-# -------------------------------------------------------------------
-# 2. Run secrets decryption (optional)
-# -------------------------------------------------------------------
 decrypt_secrets() {
-    if [ ! -f "$DECRYPT_SCRIPT" ]; then
-        echo "[WARN] No decrypt_secrets.sh script found. Skipping."
+    if [ ! -x "$DECRYPT_SCRIPT" ]; then
+        echo "[WARN] No secrets_decrypt.sh script found. Skipping."
         return
     fi
 
-    read -rp "Decrypt secrets? (y/N): " ANSWER
+    read -rp "Decrypt secrets before restore? (y/N): " ANSWER
     if [[ "$ANSWER" =~ ^[Yy] ]]; then
         echo "[INFO] Decrypting secrets..."
-        bash "$DECRYPT_SCRIPT" || echo "[ERROR] Decryption failed."
+        bash "$DECRYPT_SCRIPT" | tee -a "$LOG" || echo "[ERROR] Decryption failed."
     else
         echo "[INFO] Skipping secrets decryption."
     fi
 }
 
-# -------------------------------------------------------------------
-# 3. Restore backup contents
-# -------------------------------------------------------------------
 restore_backup() {
-    echo "[INFO] Extracting backup: $SELECTED_ARCHIVE"
-    tar -xzf "$SELECTED_ARCHIVE" -C "$HOME" || {
-        echo "[ERROR] Extraction failed."
-        exit 1
-    }
+    if [ -z "${SELECTED_ARCHIVE:-}" ]; then
+        echo "[ERROR] No archive selected."
+        return 1
+    fi
 
-    echo "[INFO] Running restore.sh..."
-    bash "$RESTORE_SCRIPT"
+    echo "[INFO] Extracting backup: $SELECTED_ARCHIVE" | tee -a "$LOG"
+    tar -xzf "$SELECTED_ARCHIVE" -C "$HOME" 2>>"$LOG"
+
+    if [ -x "$RESTORE_SCRIPT" ]; then
+        echo "[INFO] Running restore.sh..." | tee -a "$LOG"
+        bash "$RESTORE_SCRIPT" | tee -a "$LOG"
+    else
+        echo "[WARN] $RESTORE_SCRIPT not found or not executable."
+    fi
 }
 
-# -------------------------------------------------------------------
-# 4. Full system rebuild (optional)
-# -------------------------------------------------------------------
 full_rebuild() {
-    if [ ! -f "$REBUILD_SCRIPT" ]; then
-        echo "[WARN] No rebuild script found. Skipping."
+    if [ ! -x "$REBUILD_SCRIPT" ]; then
+        echo "[WARN] No myfish-rebuild.sh found. Skipping."
         return
     fi
 
-    read -rp "Do full CommanderOS rebuild? (y/N): " ANSWER
+    read -rp "Run full CommanderOS rebuild? (y/N): " ANSWER
     if [[ "$ANSWER" =~ ^[Yy] ]]; then
-        sudo bash "$REBUILD_SCRIPT"
+        echo "[INFO] Running full rebuild..." | tee -a "$LOG"
+        sudo bash "$REBUILD_SCRIPT" | tee -a "$LOG"
     else
         echo "[INFO] Skipping full rebuild."
     fi
 }
 
-# -------------------------------------------------------------------
-# MAIN MENU LOOP
-# -------------------------------------------------------------------
+run_diff_report() {
+    if [ ! -x "$DIFF_SCRIPT" ]; then
+        echo "[WARN] No diff_report.sh found at $DIFF_SCRIPT."
+        return
+    fi
+
+    echo "[INFO] Generating diff report..." | tee -a "$LOG"
+    bash "$DIFF_SCRIPT" | tee -a "$LOG"
+}
+
 while true; do
-    clear
-    echo "=============================="
-    echo "  CommanderOS Restore Menu"
-    echo "=============================="
-    echo
+    logo
     echo "1) Restore from backup archive"
     echo "2) Decrypt secrets only"
     echo "3) Run full system rebuild"
-    echo "4) Exit"
+    echo "4) Generate diff report"
+    echo "5) Exit"
     echo
     read -rp "Select an option → " OPT
 
@@ -119,6 +133,7 @@ while true; do
                 decrypt_secrets
                 restore_backup
                 full_rebuild
+                run_diff_report
                 pause
             fi
             ;;
@@ -131,6 +146,10 @@ while true; do
             pause
             ;;
         4)
+            run_diff_report
+            pause
+            ;;
+        5)
             echo "Exiting."
             exit 0
             ;;
