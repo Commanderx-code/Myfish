@@ -6,7 +6,7 @@ managed through this `MyFish` repo.
 It gives me:
 
 - 🔁 **Full environment restore** on any machine
-- 🌈 **Custom shell + terminal setup** (fish, starship, fastfetch, themes)
+- 💻 **Custom shell + terminal setup** (fish, starship, fastfetch, themes)
 - 📦 **Package restore** (APT/Nala, Flatpak, Homebrew)
 - 💾 **Automated backups** with pruning + dedicated Git branch
 - 🧪 **Custom CommanderOS ISO** that can auto-restore this environment on first boot
