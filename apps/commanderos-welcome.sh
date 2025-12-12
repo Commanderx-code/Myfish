@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TITLE="CommanderOS Welcome"
+LOG="$HOME/.cache/commanderos-welcome.log"
+REPO="$HOME/MyFish"
+
+welcome_menu() {
+    zenity --list \
+        --title="CommanderOS Welcome" \
+        --text="Welcome to CommanderOS! Choose an action to begin." \
+        --column="Action" \
+        "🛠 Run Restore Wizard" \
+        "🎨 Apply Theme Pack" \
+        "📦 Install Recommended Apps" \
+        "⚙️ System Settings" \
+        "💻 System Information" \
+        "❌ Exit"
+}
+
+restore_wizard() {
+    if [[ -x "$REPO/scripts/restore_menu.sh" ]]; then
+        bash "$REPO/scripts/restore_menu.sh"
+    else
+        zenity --error --text="Restore system not found!"
+    fi
+}
+
+apply_themes() {
+    (
+    echo "Applying CommanderOS themes..."
+    sleep 0.5
+
+    # GNOME/KDE wallpaper
+    gsettings set org.gnome.desktop.background picture-uri "file:///usr/share/backgrounds/commanderos/default.png" 2>/dev/null || true
+
+    # Terminal theme
+    mkdir -p ~/.config/kitty
+    cp "$REPO/themes/kitty/commanderos.conf" ~/.config/kitty/ 2>/dev/null || true
+
+    mkdir -p ~/.local/share/konsole
+    cp "$REPO/themes/konsole/CommanderOS.colorscheme" ~/.local/share/konsole/ 2>/dev/null || true
+
+    echo "Themes applied!"
+    ) | zenity --progress --title="Applying Themes…" --pulsate --auto-close
+}
+
+install_apps() {
+    CHOICE=$(zenity --list --checklist \
+        --title="Recommended Apps" \
+        --text="Choose which applications to install:" \
+        --column="Install" --column="Application" --column="Description" \
+        FALSE "fish" "Fast shell" \
+        FALSE "starship" "Prompt engine" \
+        FALSE "zoxide" "Smarter cd" \
+        FALSE "eza" "Modern ls" \
+        FALSE "fzf" "Fuzzy finder" \
+        FALSE "flatpak" "App platform" \
+        FALSE "kitty" "Modern GPU terminal"
+    )
+
+    [[ -z "$CHOICE" ]] && return
+
+    (
+    sudo nala install -y $CHOICE
+    ) | zenity --progress --title="Installing Apps…" --pulsate --auto-close
+}
+
+open_settings() {
+    if command -v gnome-control-center &>/dev/null; then
+        gnome-control-center
+    elif command -v systemsettings &>/dev/null; then
+        systemsettings
+    else
+        zenity --error --text="Settings app not found."
+    fi
+}
+
+system_info() {
+    fastfetch --logo none > /tmp/commanderos-system.txt
+    zenity --text-info \
+        --title="System Information" \
+        --filename=/tmp/commanderos-system.txt \
+        --width=600 --height=500
+}
+
+# --- Main loop ---
+while true; do
+    ACTION=$(welcome_menu)
+    [[ -z "$ACTION" ]] && exit 0
+
+    case "$ACTION" in
+        "🛠 Run Restore Wizard") restore_wizard ;;
+        "🎨 Apply Theme Pack") apply_themes ;;
+        "📦 Install Recommended Apps") install_apps ;;
+        "⚙️ System Settings") open_settings ;;
+        "💻 System Information") system_info ;;
+        "❌ Exit") exit 0 ;;
+    esac
+done
+
+touch ~/.config/.commanderos_welcome_seen
