@@ -28,3 +28,4 @@ secrets_plain/
 *.nmconnection
 *.gpg
 *.bak
+*.copy
