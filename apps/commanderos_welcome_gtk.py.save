@@ -1,0 +1,311 @@
+#!/usr/bin/env python3
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, Gdk
+import subprocess
+import os
+from pathlib import Path
+
+REPO = Path.home() / "MyFish"
+RESTORE_MENU = REPO / "scripts" / "restore_menu.sh"
+THEME_APPLY = Path("/usr/local/bin/myfish-apply-theme.sh")
+SYSINFO_TMP = Path("/tmp/commanderos-system.txt")
+
+
+class CommanderOSWelcome(Gtk.Window):
+    def __init__(self):
+        Gtk.Window.__init__(self, title="CommanderOS Welcome")
+        self.set_default_size(900, 600)
+        self.set_border_width(10)
+
+        # Dark-ish background
+        self.override_background_color(
+            Gtk.StateFlags.NORMAL, Gdk.RGBA(0.06, 0.06, 0.10, 1.0)
+        )
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.add(main_box)
+
+        # Sidebar
+        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        sidebar.set_size_request(220, -1)
+        sidebar.override_background_color(
+            Gtk.StateFlags.NORMAL, Gdk.RGBA(0.08, 0.08, 0.14, 1.0)
+        )
+        main_box.pack_start(sidebar, False, False, 0)
+
+        title_label = Gtk.Label()
+        title_label.set_markup("<span size='xx-large' weight='bold'>CommanderOS</span>")
+        subtitle = Gtk.Label(label="Welcome Center")
+        subtitle.override_color(Gtk.StateFlags.NORMAL, Gdk.RGBA(0.7, 0.7, 0.9, 1.0))
+
+        sidebar.pack_start(title_label, False, False, 10)
+        sidebar.pack_start(subtitle, False, False, 0)
+
+        sidebar.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL),
+                           False, False, 10)
+
+        # Navigation buttons
+        nav_buttons = [
+            ("Welcome", self.show_welcome),
+            ("Restore", self.show_restore),
+            ("Themes", self.show_themes),
+            ("Apps", self.show_apps),
+            ("System Info", self.show_sysinfo),
+        ]
+
+        for label, callback in nav_buttons:
+            btn = Gtk.Button(label=label)
+            btn.connect("clicked", callback)
+            btn.set_margin_top(3)
+            btn.set_margin_bottom(3)
+            sidebar.pack_start(btn, False, False, 0)
+
+        sidebar.pack_end(Gtk.Label(label="CommanderOS • MyFish"), False, False, 5)
+
+        # Right side stack
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_duration(200)
+        main_box.pack_start(self.stack, True, True, 0)
+
+        self.build_pages()
+
+        # Default
+        self.stack.set_visible_child_name("welcome")
+
+    # ---------- Pages ----------
+
+    def build_pages(self):
+        self.stack.add_named(self.build_welcome_page(), "welcome")
+        self.stack.add_named(self.build_restore_page(), "restore")
+        self.stack.add_named(self.build_themes_page(), "themes")
+        self.stack.add_named(self.build_apps_page(), "apps")
+        self.stack.add_named(self.build_sysinfo_page(), "sysinfo")
+
+    def build_welcome_page(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_border_width(15)
+
+        lbl = Gtk.Label()
+        lbl.set_markup(
+            "<span size='xx-large' weight='bold'>Welcome to CommanderOS</span>"
+        )
+        lbl.set_xalign(0)
+
+        desc = Gtk.Label()
+        desc.set_markup(
+            "<span size='large'>A personalized Zorin-based environment powered by MyFish.\n"
+            "Use the sidebar to restore your setup, apply themes, and install tools.</span>"
+        )
+        desc.set_xalign(0)
+        desc.set_line_wrap(True)
+
+        box.pack_start(lbl, False, False, 0)
+        box.pack_start(desc, False, False, 10)
+
+        btn_box = Gtk.Box(spacing=8)
+        restore_btn = Gtk.Button(label="Run Restore Wizard")
+        restore_btn.connect("clicked", self.run_restore_wizard)
+        themes_btn = Gtk.Button(label="Apply Theme Pack")
+        themes_btn.connect("clicked", self.run_apply_theme)
+
+        btn_box.pack_start(restore_btn, False, False, 0)
+        btn_box.pack_start(themes_btn, False, False, 0)
+
+        box.pack_start(btn_box, False, False, 5)
+
+        return box
+
+    def build_restore_page(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_border_width(15)
+
+        title = Gtk.Label()
+        title.set_markup("<span size='x-large' weight='bold'>Restore Environment</span>")
+        title.set_xalign(0)
+
+        desc = Gtk.Label(
+            label="Run the CommanderOS restore wizard to apply backups, configs, and packages."
+        )
+        desc.set_xalign(0)
+        desc.set_line_wrap(True)
+
+        btn = Gtk.Button(label="Open Restore Wizard")
+        btn.connect("clicked", self.run_restore_wizard)
+
+        box.pack_start(title, False, False, 0)
+        box.pack_start(desc, False, False, 5)
+        box.pack_start(btn, False, False, 10)
+
+        return box
+
+    def build_themes_page(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_border_width(15)
+
+        title = Gtk.Label()
+        title.set_markup("<span size='x-large' weight='bold'>Themes & Appearance</span>")
+        title.set_xalign(0)
+
+        desc = Gtk.Label(
+            label="Apply CommanderOS terminal, fonts, icons, and wallpapers."
+        )
+        desc.set_xalign(0)
+        desc.set_line_wrap(True)
+
+        btn = Gtk.Button(label="Apply CommanderOS Theme Pack")
+        btn.connect("clicked", self.run_apply_theme)
+
+        box.pack_start(title, False, False, 0)
+        box.pack_start(desc, False, False, 5)
+        box.pack_start(btn, False, False, 10)
+
+        return box
+
+    def build_apps_page(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_border_width(15)
+
+        title = Gtk.Label()
+        title.set_markup("<span size='x-large' weight='bold'>Recommended Apps</span>")
+        title.set_xalign(0)
+
+        desc = Gtk.Label(
+            label="Install your favorite CLI tools and desktop apps commonly used in CommanderOS."
+        )
+        desc.set_xalign(0)
+        desc.set_line_wrap(True)
+
+        btn = Gtk.Button(label="Install Recommended CLI Tools")
+        btn.connect("clicked", self.run_install_apps)
+
+        box.pack_start(title, False, False, 0)
+        box.pack_start(desc, False, False, 5)
+        box.pack_start(btn, False, False, 10)
+
+        return box
+
+    def build_sysinfo_page(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_border_width(15)
+
+        title = Gtk.Label()
+        title.set_markup("<span size='x-large' weight='bold'>System Information</span>")
+        title.set_xalign(0)
+
+        desc = Gtk.Label(
+            label="View a snapshot of your system (fastfetch output)."
+        )
+        desc.set_xalign(0)
+        desc.set_line_wrap(True)
+
+        btn = Gtk.Button(label="Show System Info")
+        btn.connect("clicked", self.run_sysinfo)
+
+        box.pack_start(title, False, False, 0)
+        box.pack_start(desc, False, False, 5)
+        box.pack_start(btn, False, False, 10)
+
+        return box
+
+    # ---------- Navigation callbacks ----------
+
+    def show_welcome(self, _btn):
+        self.stack.set_visible_child_name("welcome")
+
+    def show_restore(self, _btn):
+        self.stack.set_visible_child_name("restore")
+
+    def show_themes(self, _btn):
+        self.stack.set_visible_child_name("themes")
+
+    def show_apps(self, _btn):
+        self.stack.set_visible_child_name("apps")
+
+    def show_sysinfo(self, _btn):
+        self.stack.set_visible_child_name("sysinfo")
+
+    # ---------- Actions ----------
+
+    def run_restore_wizard(self, _btn=None):
+        if RESTORE_MENU.exists():
+            subprocess.Popen(["bash", str(RESTORE_MENU)])
+        else:
+            self.error_dialog("Restore wizard not found at:\n" + str(RESTORE_MENU))
+
+    def run_apply_theme(self, _btn=None):
+        if THEME_APPLY.exists():
+            subprocess.Popen(["bash", str(THEME_APPLY)])
+        else:
+            self.error_dialog("Theme apply script not found at:\n" + str(THEME_APPLY))
+
+    def run_install_apps(self, _btn=None):
+        cmd = [
+            "bash",
+            "-lc",
+            "sudo nala install -y fish starship zoxide eza ranger fzf fastfetch kitty"
+        ]
+        try:
+            subprocess.Popen(cmd)
+        except Exception as e:
+            self.error_dialog(f"Failed to start install command:\n{e}")
+
+    def run_sysinfo(self, _btn=None):
+        try:
+            with open(SYSINFO_TMP, "w") as f:
+                subprocess.run(["fastfetch", "--logo", "none"], stdout=f, check=True)
+            self.show_text_view("CommanderOS System Info", SYSINFO_TMP.read_text())
+        except Exception as e:
+            self.error_dialog(f"Failed to get system info:\n{e}")
+
+    # ---------- Helper dialogs ----------
+
+    def error_dialog(self, message: str):
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            flags=0,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.CLOSE,
+            text="CommanderOS Error",
+        )
+        dialog.format_secondary_text(message)
+        dialog.run()
+        dialog.destroy()
+
+    def show_text_view(self, title: str, text: str):
+        dialog = Gtk.Dialog(title, self, 0)
+        dialog.set_default_size(700, 500)
+
+        box = dialog.get_content_area()
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+
+        tv = Gtk.TextView()
+        tv.set_editable(False)
+        tv.set_cursor_visible(False)
+        tv.get_buffer().set_text(text)
+
+        scroller.add(tv)
+        box.add(scroller)
+
+        dialog.add_button("_Close", Gtk.ResponseType.CLOSE)
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+
+flag = Path.home() / ".config" / ".commanderos_welcome_gtk_seen"
+if flag.exists():
+    exit(0)
+flag.parent.mkdir(parents=True, exist_ok=True)
+flag.touch()
+
+def main():
+    win = CommanderOSWelcome()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()
