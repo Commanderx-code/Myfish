@@ -40,11 +40,11 @@ install_grub_theme() {
 }
 
 # --- Plymouth ---
-install_plymouth_theme() {
-    log "Installing Plymouth boot theme..."
-    mkdir -p /usr/share/plymouth/themes/commanderos
-    cp -r "$THEME_DIR/plymouth/"* /usr/share/plymouth/themes/commanderos/
-    plymouth-set-default-theme -R commanderos || true
+#install_plymouth_theme() {
+#log "Installing Plymouth boot theme..."
+#mkdir -p /usr/share/plymouth/themes/commanderos
+#cp -r "$THEME_DIR/plymouth/"* /usr/share/plymouth/themes/commanderos/
+#plymouth-set-default-theme -R commanderos || true
 }
 
 # --- SDDM ---
@@ -100,12 +100,15 @@ apply_wallpaper() {
 
 # --- Run all ---
 install_grub_theme
-install_plymouth_theme
+#install_plymouth_theme
 install_sddm_theme
 install_wallpapers
 install_konsole_theme
 install_kitty_theme
 apply_wallpaper
+
+log "Ensuring stock Zorin Plymouth theme (bgrt)"
+plymouth-set-default-theme -R bgrt || true
 
 echo "================================================="
 echo " CommanderOS themes installed successfully"
