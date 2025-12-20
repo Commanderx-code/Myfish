@@ -32,10 +32,22 @@ status is-interactive; and fastfetch
 # -----------------------------
 # Aliases
 # -----------------------------
-
+alias update 'sudo nala update'
+alias upgrade 'sudo nala upgrade'
+alias install 'sudo nala install'
+alias remove 'sudo nala remove'
+alias full-upgrade 'topgrade'
+# Cleanup
+alias clean 'sudo nala autoremove; and sudo nala clean'
+# Quick system check
+alias sysinfo "fastfetch"
 alias spico="sudo pico"
 alias snano="sudo nano"
 alias vim="nvim"
+#Battery
+alias battery='sudo power-battery'
+alias balanced='sudo power-balanced'
+alias performance='sudo power-performance'
 
 alias web="cd /var/www/html"
 alias alert='notify-send --urgency=low (test $status -eq 0; and echo terminal; or echo error) (history | tail -n1)'
@@ -135,8 +147,37 @@ function gcom
 end
 
 # -----------------------------
-# Apt-nala update
+# Package management (nala)
 # -----------------------------
+
+function update
+    sudo nala update $argv
+end
+
+function upgrade
+    sudo nala upgrade $argv
+end
+
+function install
+    sudo nala install $argv
+end
+
+function remove
+    sudo nala remove $argv
+end
+
+function clean
+    sudo nala autoremove -y
+    sudo nala clean
+end
+
+# -----------------------------
+# Full system upgrade
+# -----------------------------
+
+function full-upgrade
+    topgrade
+end
 
 function apt
     command nala $argv
@@ -228,11 +269,6 @@ end
 # -----------------------------
 # EZA (modern ls replacement)
 # -----------------------------
-
-# -----------------------------
-# EZA (modern ls replacement)
-# -----------------------------
-
 # Keep colors consistent everywhere
 set -Ux EZA_COLORS \
 "da=1;34:\
