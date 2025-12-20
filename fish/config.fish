@@ -32,7 +32,15 @@ status is-interactive; and fastfetch
 # -----------------------------
 # Aliases
 # -----------------------------
-
+alias update 'sudo nala update'
+alias upgrade 'sudo nala upgrade'
+alias install 'sudo nala install'
+alias remove 'sudo nala remove'
+alias full-upgrade 'topgrade'
+# Cleanup
+alias clean 'sudo nala autoremove; and sudo nala clean'
+# Quick system check
+alias sysinfo "fastfetch"
 alias spico="sudo pico"
 alias snano="sudo nano"
 alias vim="nvim"
@@ -135,8 +143,37 @@ function gcom
 end
 
 # -----------------------------
-# Apt-nala update
+# Package management (nala)
 # -----------------------------
+
+function update
+    sudo nala update $argv
+end
+
+function upgrade
+    sudo nala upgrade $argv
+end
+
+function install
+    sudo nala install $argv
+end
+
+function remove
+    sudo nala remove $argv
+end
+
+function clean
+    sudo nala autoremove -y
+    sudo nala clean
+end
+
+# -----------------------------
+# Full system upgrade
+# -----------------------------
+
+function full-upgrade
+    topgrade
+end
 
 function apt
     command nala $argv
@@ -228,11 +265,6 @@ end
 # -----------------------------
 # EZA (modern ls replacement)
 # -----------------------------
-
-# -----------------------------
-# EZA (modern ls replacement)
-# -----------------------------
-
 # Keep colors consistent everywhere
 set -Ux EZA_COLORS \
 "da=1;34:\
@@ -288,6 +320,15 @@ function fcd
     set dir (eza -D --color=always | fzf)
     cd $dir
 end
+set -g PATH $PATH $HOME/MyFish/scripts
+
+# -----------------------------
+# Homebrew
+# -----------------------------
+set -Ux PATH /home/linuxbrew/.linuxbrew/bin /home/linuxbrew/.linuxbrew/sbin $PATH
+fish_add_path /home/linuxbrew/.linuxbrew/bin
+fish_add_path /home/linuxbrew/.linuxbrew/sbin
+
 
 
 
