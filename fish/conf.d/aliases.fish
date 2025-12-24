@@ -23,11 +23,14 @@ alias less="less -R"
 alias home="cd ~"
 
 # Directory jumps
-abbr ..="cd .."
-abbr ...="cd ../.."
-abbr ....="cd ../../.."
-abbr .....="cd ../../../.."
-abbr bd="cd -"
+if status is-interactive
+    abbr -a ..     'cd ..'
+    abbr -a ...    'cd ../..'
+    abbr -a ....   'cd ../../..'
+    abbr -a .....  'cd ../../../..'
+    abbr -a bd     'cd -'
+    abbr -a home   'cd ~'
+end
 
 alias topcpu="/bin/ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10"
 
