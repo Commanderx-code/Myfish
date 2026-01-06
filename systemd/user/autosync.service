@@ -1,6 +1,0 @@
-[Unit]
-Description=Auto sync MyFish repo
-
-[Service]
-Type=oneshot
-ExecStart=/home/commander/MyFish/scripts/autosync.sh

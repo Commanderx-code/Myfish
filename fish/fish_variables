@@ -1,12 +1,15 @@
 # This file contains fish universal variable definitions.
 # VERSION: 3.0
+SETUVAR --export BAT_PAGER:
 SETUVAR --export EDITOR:nvim
 SETUVAR --export EZA_COLORS:da\x3d1\x3b34\x3adi\x3d1\x3b36\x3afi\x3d0\x3b37\x3aex\x3d1\x3b32\x3a\x2a\x2ezip\x3d1\x3b31\x3a\x2a\x2etar\x3d1\x3b31\x3a\x2a\x2egz\x3d1\x3b31\x3a\x2a\x2ejpg\x3d1\x3b35\x3a\x2a\x2epng\x3d1\x3b35
 SETUVAR --export FZF_DEFAULT_COMMAND:eza\x20\x2d\x2dicons\x20\x2d\x2drecurse\x20\x2d\x2dignore\x2dglob\x3d\x2egit\x20\x2d\x2dcolor\x3dalways
 SETUVAR --export FZF_DEFAULT_OPTS:\x2d\x2dansi\x20\x2d\x2dpreview\x20\x27eza\x20\x2d\x2dicons\x20\x2d\x2dtree\x20\x2d\x2dlevel\x3d3\x20\x2d\x2dcolor\x3dalways\x20\x7b\x7d\x20\x7c\x20head\x20\x2d200\x27
+SETUVAR --export GOBIN:/home/commander/go/bin
+SETUVAR --export --path GOPATH:/home/commander/go
 SETUVAR --export NNN_FIFO:/tmp/nnn\x2efifo
 SETUVAR --export NNN_OPTS:e
-SETUVAR --export --path PATH:/home/linuxbrew/\x2elinuxbrew/bin\x1e/home/linuxbrew/\x2elinuxbrew/sbin\x1e/home/linuxbrew/\x2elinuxbrew/sbin\x1e/home/linuxbrew/\x2elinuxbrew/bin\x1e/home/commander/\x2elocal/bin\x1e/home/commander/\x2ecargo/bin\x1e/usr/local/sbin\x1e/usr/local/bin\x1e/usr/sbin\x1e/usr/bin\x1e/sbin\x1e/bin\x1e/usr/games\x1e/usr/local/games\x1e/snap/bin\x1e/snap/bin\x1e/home/commander/\x2elocal/bin\x1e/home/commander/\x2ecargo/bin\x1e/var/lib/flatpak/exports/bin\x1e/home/commander/\x2elocal/share/flatpak/exports/bin\x1e/home/commander/MyFish/scripts\x1e/home/commander/MyFish/scripts
+SETUVAR --export --path PATH:/home/commander/\x2elocal/bin\x1e/home/commander/\x2ecargo/bin\x1e/home/linuxbrew/\x2elinuxbrew/bin\x1e/home/linuxbrew/\x2elinuxbrew/sbin\x1e/var/lib/flatpak/exports/bin\x1e/snap/bin\x1e/usr/local/sbin\x1e/usr/local/bin\x1e/usr/sbin\x1e/usr/bin\x1e/sbin\x1e/bin\x1e/usr/games\x1e/usr/local/games\x1e/snap/bin\x1e/usr/local/go/bin\x1e/home/commander/go/bin
 SETUVAR --export VISUAL:nvim
 SETUVAR --export XDG_CACHE_HOME:/home/commander/\x2ecache
 SETUVAR --export XDG_CONFIG_HOME:/home/commander/\x2econfig
@@ -45,4 +48,3 @@ SETUVAR fish_pager_color_description:yellow\x1e\x2di
 SETUVAR fish_pager_color_prefix:normal\x1e\x2d\x2dbold\x1e\x2d\x2dunderline
 SETUVAR fish_pager_color_progress:brwhite\x1e\x2d\x2dbackground\x3dcyan
 SETUVAR fish_pager_color_selected_background:\x2dr
-SETUVAR fish_user_paths:/var/lib/flatpak/exports/bin\x1e/home/commander/\x2ecargo/bin\x1e/home/commander/\x2elocal/bin\x1e/home/linuxbrew/\x2elinuxbrew/sbin\x1e/home/linuxbrew/\x2elinuxbrew/bin

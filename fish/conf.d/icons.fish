@@ -1,0 +1,10 @@
+# Terminal-safe Nerd Font icons (no emoji)
+set -g I_OK      ""
+set -g I_ERR     ""
+set -g I_WARN    ""
+set -g I_INFO    ""
+set -g I_SYNC    ""
+set -g I_PKG     ""
+set -g I_RUN     ""
+set -g I_CLEAN   ""
+set -g I_TIME    ""
