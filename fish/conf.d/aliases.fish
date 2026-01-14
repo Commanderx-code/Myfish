@@ -18,7 +18,7 @@ alias rbatcat="/usr/bin/batcat"
 
 alias ping="ping -c 10"
 alias cls="clear"
-alias ps="ps auxf"
+alias psa="ps auxf"
 alias less="less -R"
 alias fd="fdfind"
 alias grep="rg"
