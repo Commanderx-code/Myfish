@@ -87,6 +87,8 @@ in
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
     initContent = lib.mkAfter ''
+      ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+      ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=244"
       source ${./shell/common.sh}
       source ${./shell/zsh.zsh}
     '';

@@ -183,6 +183,10 @@ startup entry to disable it. It only loads in interactive terminals.
 Home Manager uses the pinned Nix package. Direct mode builds upstream ble.sh into
 `~/.local/share/blesh`, installing Git, make and gawk if missing; reruns reuse it.
 
+Home Manager Zsh suggests from its own history, then falls back to completion.
+Fish and Bash history are not imported. Suggestions use gray text; press Right
+Arrow at the end of the command to accept one.
+
 To switch your VM to Bash or Zsh:
 
 ```sh
