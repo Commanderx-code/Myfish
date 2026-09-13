@@ -12,6 +12,6 @@ jobs:
         run: |
           nix develop --command python3 -B -m unittest discover -s tests -v
           bash -n install.sh scripts/prerequisites.sh
-          nix develop --command shellcheck install.sh scripts/prerequisites.sh modules/fzf-preview modules/shell/common.sh modules/shell/bash.sh
+          nix develop --command shellcheck install.sh scripts/prerequisites.sh modules/fzf-preview modules/shell/common.sh modules/shell/bash.sh modules/shell/ble-start.sh modules/shell/ble-finish.sh
       - name: Build example home without activation
         run: nix flake check

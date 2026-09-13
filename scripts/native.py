@@ -16,6 +16,8 @@ def package_plan(machine, manager):
         tools[shell] = shell
     if shell != 'keep':
         tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git'})
+    if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
+        tools.update({'git': 'git', 'make': 'make', 'gawk': 'gawk'})
     if machine['features']['neovim']:
         tools['nvim'] = 'neovim'
     if machine['features']['development']:
@@ -69,6 +71,18 @@ unset commander_fzf
         for name in ['common.sh', extension]:
             files[config / 'commander-os/shell' / name] = (shell_source / name).read_text()
             files[config / f'commander-os/init.{shell}'] += f'\n. "${{XDG_CONFIG_HOME:-$HOME/.config}}/commander-os/shell/{name}"\n'
+        if shell == 'bash':
+            for name in ['ble-start.sh', 'ble-finish.sh']:
+                files[config / 'commander-os/shell' / name] = (shell_source / name).read_text()
+            init = config / 'commander-os/init.bash'
+            # ble.sh provides fzf integration; avoid loading distro bindings twice.
+            text = files[init]
+            start = text.index('for commander_fzf')
+            end = text.index('unset commander_fzf', start) + len('unset commander_fzf')
+            text = text[:start] + text[end:]
+            prefix = '. "${XDG_CONFIG_HOME:-$HOME/.config}/commander-os/shell/ble-start.sh"\n'
+            suffix = '\n. "${XDG_CONFIG_HOME:-$HOME/.config}/commander-os/shell/ble-finish.sh"\n'
+            files[init] = prefix + text + suffix
         startup = home / ('.bashrc' if shell == 'bash' else '.zshrc')
         original = startup.read_text() if startup.exists() else ''
         marker = '# Commander-os shell integration'
@@ -127,8 +141,11 @@ def install_native(machine, *, apply, install_missing, configure_login):
     starship = not shutil.which('starship') and not os.access(home / '.local/bin/starship', os.X_OK)
     shell = machine.get('shell', 'fish' if machine['features']['fish'] else 'keep')
     starship = starship and shell != 'keep'
+    blesh = shell == 'bash' and not (home / '.local/share/blesh/ble.sh').is_file()
     print(f'Direct install via {manager}; Nix and Home Manager will not be installed.')
     print('Missing packages: ' + (', '.join(packages) or 'none'))
+    if blesh:
+        print('ble.sh will be built from https://github.com/akinomyoga/ble.sh into ~/.local/share/blesh.')
     if starship:
         print('Starship will be installed from https://starship.rs/install.sh into ~/.local/bin.')
     if machine['features']['development']:
@@ -139,7 +156,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
         return 0
     if home != Path.home() or machine['username'] != pwd.getpwuid(os.getuid()).pw_name:
         raise ValueError('Activation settings must match the current user and home directory')
-    if not install_missing and (packages or starship):
+    if not install_missing and (packages or starship or blesh):
         raise RuntimeError('Dependencies are missing and --no-install was specified')
     if input('Type APPLY to install the listed tools and configuration: ') != 'APPLY':
         print('Cancelled.')
@@ -161,6 +178,12 @@ def install_native(machine, *, apply, install_missing, configure_login):
             binary_dir = home / '.local/bin'
             binary_dir.mkdir(parents=True, exist_ok=True)
             subprocess.run(['sh', str(script), '--yes', '--bin-dir', str(binary_dir)], check=True)
+    if blesh:
+        with tempfile.TemporaryDirectory(prefix='commander-os-blesh-') as directory:
+            source = Path(directory) / 'ble.sh'
+            subprocess.run(['git', 'clone', '--recursive', '--depth', '1', '--shallow-submodules',
+                            'https://github.com/akinomyoga/ble.sh.git', str(source)], check=True)
+            subprocess.run(['make', '-C', str(source), 'install', f'PREFIX={home / ".local"}'], check=True)
     write_configs(files)
     if shell != 'keep':
         (home / '.local/bin/fzf-preview').chmod(0o700)

@@ -49,7 +49,8 @@ in
         libnotify
         git
       ]
-    );
+    )
+    ++ lib.optionals (shell == "bash") [ pkgs.blesh ];
   xdg.configFile = {
     "fish/conf.d" = lib.mkIf (shell == "fish") {
       source = ./fish/conf.d;
@@ -71,9 +72,14 @@ in
   };
   programs.bash = lib.mkIf (shell == "bash") {
     enable = true;
-    initExtra = lib.mkAfter ''
+    bashrcExtra = lib.mkBefore ''
+      COMMANDER_BLE_FILE=${pkgs.blesh}/share/blesh/ble.sh
+      source ${./shell/ble-start.sh}
+    '';
+    initExtra = lib.mkOrder 3000 ''
       source ${./shell/common.sh}
       source ${./shell/bash.sh}
+      source ${./shell/ble-finish.sh}
     '';
   };
   programs.zsh = lib.mkIf (shell == "zsh") {
@@ -95,7 +101,7 @@ in
   programs.fzf = {
     enable = true;
     enableFishIntegration = shell == "fish";
-    enableBashIntegration = shell == "bash";
+    enableBashIntegration = false; # ble.sh owns the Bash fzf integration.
     enableZshIntegration = shell == "zsh";
   };
   programs.zoxide = {

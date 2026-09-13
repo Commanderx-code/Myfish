@@ -98,3 +98,16 @@ class NativeTests(unittest.TestCase):
             run.assert_not_called()
             self.assertEqual(calls, [{'native': True}])
         self.assertTrue((self.home / '.config/fish/conf.d/commander-os.fish').is_file())
+
+    def test_bash_ble_wraps_prompt_and_shell_bindings(self):
+        self.machine['shell'] = 'bash'
+        files = native.config_files(self.machine, self.home, self.home / '.config')
+        init = files[self.home / '.config/commander-os/init.bash']
+        self.assertLess(init.index('ble-start.sh'), init.index('starship init bash'))
+        self.assertLess(init.index('bash.sh'), init.index('ble-finish.sh'))
+        self.assertNotIn('for commander_fzf', init)
+        self.assertIn(self.home / '.config/commander-os/shell/ble-start.sh', files)
+
+    def test_bash_preview_does_not_download_ble(self):
+        self.machine['shell'] = 'bash'
+        self.test_preview_never_installs_or_writes()

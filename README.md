@@ -165,7 +165,7 @@ Home Manager and direct mode install these files when that shell is selected.
 | File / text picker | Ctrl-P / Ctrl-F | Ctrl-P / Ctrl-F | Ctrl-P / Ctrl-F |
 | History | fzf Ctrl-R; Ctrl-H when its widget exists | fzf Ctrl-R; Ctrl-H when its widget exists | Ctrl-R / Ctrl-H |
 | Directory shortcuts | aliases | aliases | abbreviations |
-| Syntax / suggestions | native Readline completion | Home Manager enables highlighting and autosuggestions | built in, with custom colors |
+| Syntax / suggestions | ble.sh highlighting and autosuggestions (both installers) | Home Manager enables highlighting and autosuggestions | built in, with custom colors |
 | Notifications | `notify-run COMMAND` | `notify-run COMMAND` | automatic long-command notifications |
 
 Starship, fzf and zoxide remain initialized through each shell's integration.
@@ -175,6 +175,13 @@ pickers preserve spaces. `notify-run` preserves the command's exit status and
 requires `notify-send` for desktop notifications. Direct mode requires optional
 Fastfetch/broot/preview packages just as the Fish setup does; automatic Zsh
 highlighting and suggestions are currently provided by Home Manager mode.
+
+Bash loads ble.sh before Starship and attaches it after startup. Press **Right Arrow**
+to accept a suggestion; **Ctrl-F** stays assigned to the text picker. Suggestions
+learn from your command history. Set `export COMMANDER_BLE=0` before the Commander-os
+startup entry to disable it. It only loads in interactive terminals.
+Home Manager uses the pinned Nix package. Direct mode builds upstream ble.sh into
+`~/.local/share/blesh`, installing Git, make and gawk if missing; reruns reuse it.
 
 To switch your VM to Bash or Zsh:
 
