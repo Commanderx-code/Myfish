@@ -1,0 +1,6 @@
+{
+  "username": "example",
+  "homeDirectory": "/home/example",
+  "system": "x86_64-linux",
+  "features": { "fish": true, "neovim": true, "development": false }
+}

@@ -1,0 +1,16 @@
+name: Validate
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: cachix/install-nix-action@b85815f71a6de0ddee80b8a80a98d43f4bcc66c7
+      - name: Test bootstrap safety
+        run: |
+          python3 -B -m unittest discover -s tests -v
+          bash -n install.sh
+      - name: Build example home without activation
+        run: nix flake check

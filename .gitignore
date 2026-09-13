@@ -1,0 +1,23 @@
+# Host settings belong outside this checkout.
+/machine.json
+/result*
+.env
+.env.*
+!.env.example
+secrets/
+private/
+personal/
+system-backup/
+.ssh/
+.gnupg/
+.aws/
+*.key
+*.pem
+*.gpg
+*.p12
+*.pfx
+*.kwl
+*.kdbx
+__pycache__/
+*.pyc
+*.log
