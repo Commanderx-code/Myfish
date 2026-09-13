@@ -11,6 +11,7 @@ jobs:
       - name: Test bootstrap safety
         run: |
           python3 -B -m unittest discover -s tests -v
-          bash -n install.sh
+          bash -n install.sh scripts/prerequisites.sh
+          shellcheck install.sh scripts/prerequisites.sh
       - name: Build example home without activation
         run: nix flake check

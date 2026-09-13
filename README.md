@@ -9,29 +9,39 @@ your bootloader, desktop, login shell, distribution packages, or backup services
 
 ## Get started
 
-Requirements: Linux, Git, Python 3, internet access and a working Nix installation.
-Home Manager itself does not need to be installed beforehand.
+Run the guided installer as your normal user:
 
 ```sh
 git clone https://github.com/Commanderx-code/Commander-os.git
 cd Commander-os
-./install.sh --init
+./install.sh --apply
 ```
 
-Edit `~/.config/commander-os/machine.json` (or the path printed by the installer).
-Set `fish`, `neovim`, and `development` to `true` or `false` to select features.
-Defaults come from your current account. Never run the installer with sudo.
+You can also download and extract this repository using GitHub's **Code →
+Download ZIP** button if Git is not installed. Open a terminal in the extracted
+folder and run `bash install.sh --apply`.
 
-If Nix is missing, follow the [official Nix installation guide](https://nixos.org/download/).
-The script also prints guidance when it cannot find Nix. Installation choices
-vary with systemd, SELinux and your host OS; it does not silently install system
-services. Open a fresh terminal after installing Nix.
+The script detects missing Python 3, Git, curl and xz, and offers to install them
+using apt, dnf or pacman. It shows the package list and asks before using sudo.
+On Arch, it uses the existing package database; if installation fails due to stale
+mirrors, perform your normal full system update before retrying.
 
-Build without changing your active configuration:
+If Nix is missing, the script offers to download and run the
+[official Nix installer](https://nixos.org/download/), then loads Nix into the
+current process and continues. Automatic Nix installation supports systemd Linux
+with SELinux disabled. Existing broken Nix installations and unsupported systems
+stop with guidance instead of modifying the host. Home Manager needs no separate
+installation: Nix builds it along with the selected tools.
 
-```sh
-./install.sh
-```
+Settings are created at `~/.config/commander-os/machine.json` (or under your
+`XDG_CONFIG_HOME`). Defaults come from your current account. Edit `fish`, `neovim`
+and `development` to select features. Use `./install.sh --init` to create settings
+before building. Never run the whole script with sudo.
+
+To prepare dependencies and build without activation, run `./install.sh`.
+For a preview that must not install prerequisites, use `./install.sh --no-install`.
+Package installation, Nix installation, and activation each explain their changes
+before asking for confirmation. Declining stops that stage.
 
 Inspect the printed `home-files` directory to see the generated configuration.
 When ready:
@@ -92,7 +102,7 @@ system Home Manager module and this standalone installer. macOS is not supported
 
 ```sh
 python3 -B -m unittest discover -s tests -v
-bash -n install.sh
+bash -n install.sh scripts/prerequisites.sh
 nix --extra-experimental-features 'nix-command flakes' flake check
 ```
 
@@ -100,3 +110,7 @@ Planned next steps: clean-VM installation tests, optional desktop styling, and
 optional backup integrations with user-provided destinations and credentials.
 No personal repository history, system snapshots, wallet data, or bundled
 executables are included.
+
+The guided dependency setup is inspired by the workflow of
+[ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash); Commander-os
+uses its own installer and manages the home environment through Home Manager.
