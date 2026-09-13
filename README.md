@@ -28,7 +28,10 @@ must be changed to use the account's default shell.
 | Home Manager | Installs Nix if needed; pinned packages from `flake.lock` | Home Manager generations and backups of conflicting files |
 | Direct | Uses apt, dnf, or pacman; Starship's official installer if needed | Timestamped copies of changed configuration files |
 
-Both modes provide CLI tools, Starship, zoxide, fzf and optional Neovim. Shell
+Both modes provide CLI tools, a Powerline-style Starship theme, zoxide, fzf and optional Neovim.
+Home Manager also installs JetBrainsMono Nerd Font and enables fontconfig. Select
+**JetBrainsMono Nerd Font** in your terminal preferences to render the separators
+and icons. Direct mode currently requires you to install a Nerd Font separately. Shell
 configuration follows your selected shell. Direct development mode installs Git;
 Lazygit is currently included only in Home Manager development mode. Direct mode
 preserves any existing Neovim configuration. Package versions follow the distro
@@ -123,5 +126,5 @@ nix flake check
 Targets: x86_64 and aarch64 Linux. Builds are tested on x86_64; clean-machine,
 ARM, and cross-distro activation testing remains in progress. macOS is unsupported.
 The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash),
-with independently implemented installers and selectable shells. Fuller visual
-themes, Nerd Font setup and desktop integration remain future work.
+with independently implemented installers and selectable shells. Automatic terminal font selection, direct-mode font installation, and desktop
+integration remain future work.

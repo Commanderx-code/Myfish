@@ -70,7 +70,7 @@ unset commander_fzf
             snippet = f'\n{marker}\n[ -r "${{XDG_CONFIG_HOME:-$HOME/.config}}/commander-os/init.{shell}" ] && . "${{XDG_CONFIG_HOME:-$HOME/.config}}/commander-os/init.{shell}"\n'
             files[startup] = original + snippet
     if shell != 'keep':
-        files[config / 'commander-os/starship.toml'] = 'add_newline = false\n[character]\nsuccess_symbol = "[❯](bold green)"\n'
+        files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
     if machine['features']['neovim']:
         # Do not replace an existing editor configuration in direct mode.
         if not (config / 'nvim').exists():

@@ -15,6 +15,7 @@ in
   programs.home-manager.enable = true;
   targets.genericLinux.enable = true;
   xdg.enable = true;
+  fonts.fontconfig.enable = true;
   home.packages = with pkgs; [
     # Keep login shells available if the user declines a later shell change.
     bashInteractive
@@ -25,6 +26,7 @@ in
     bat
     eza
     jq
+    nerd-fonts.jetbrains-mono
   ];
   programs.fish = lib.mkIf (shell == "fish") {
     enable = true;
@@ -52,10 +54,7 @@ in
     enableFishIntegration = shell == "fish";
     enableBashIntegration = shell == "bash";
     enableZshIntegration = shell == "zsh";
-    settings = {
-      add_newline = false;
-      character.success_symbol = "[❯](bold green)";
-    };
+    settings = builtins.fromTOML (builtins.readFile ./starship.toml);
   };
   programs.fzf = {
     enable = true;

@@ -1,0 +1,118 @@
+format = """
+[╭─](bg:#3B4252 fg:#ECEFF4)\
+$python\
+$username\
+[](bg:#434C5E fg:#3B4252)\
+$directory\
+[](fg:#434C5E bg:#4C566A)\
+$git_branch\
+$git_status\
+[](fg:#4C566A bg:#86BBD8)\
+$c\
+$golang\
+$java\
+$rust\
+[](fg:#86BBD8 bg:#06969A)\
+$docker_context\
+[](fg:#06969A bg:#5E81AC)\
+[](fg:#5E81AC bg:#33658A)\
+$time\
+[](fg:#33658A)
+[╰─⮞](bg:#3B4252 fg:#ECEFF4)\
+$character\
+$status\
+$package
+"""
+
+command_timeout = 1200
+
+[username]
+show_always = true
+style_user = "bg:#3B4252 fg:#ECEFF4"
+style_root = "bg:#3B4252 fg:#BF616A"
+format = "[$user ]($style)"
+
+[character]
+error_symbol = " [×](bold red)"
+success_symbol = " [λ](green bold)"
+
+[status]
+disabled = false
+format = '[\[$symbol$status_common_meaning$status_signal_name$status_maybe_int\]]($style)'
+map_symbol = true
+pipestatus = true
+symbol = "●"
+
+[directory]
+style = "bg:#434C5E"
+read_only = ""
+read_only_style = "bg:#434C5E fg:#BF616A bold"
+truncation_length = 3
+truncate_to_repo = true
+truncation_symbol = "…/"
+format = "[ in $path ]($style)[$read_only]($read_only_style)"
+
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+
+[time]
+disabled = false
+time_format = "🕙 %I:%M %p"
+style = "bg:#33658A"
+format = "[ $time ]($style)"
+
+[git_branch]
+symbol = " "
+style = "bg:#3B4252"
+format = "[ $symbol$branch ]($style)"
+
+[git_status]
+style = "bg:#3B4252"
+format = "[$all_status$ahead_behind ]($style)"
+conflicted = ""
+ahead = "⇡"
+behind = "⇣"
+diverged = "⇕"
+untracked = "?"
+stashed = ""
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[c]
+symbol = " "
+style = "bg:#86BBD8"
+format = '[ $symbol ($version) ]($style)'
+
+[golang]
+symbol = "󰟓 "
+style = "bg:#86BBD8"
+format = '[ $symbol ($version) ]($style)'
+
+[java]
+symbol = " "
+style = "bg:#86BBD8"
+format = '[ $symbol ($version) ]($style)'
+
+[rust]
+symbol = " "
+style = "bg:#86BBD8"
+format = '[ $symbol ($version) ]($style)'
+
+[python]
+symbol = ""
+style = "bg:#3B4252"
+format = "[ $symbol$version (\\($virtualenv\\)) ]($style) "
+
+[docker_context]
+symbol = " "
+style = "bg:#06969A"
+format = "[ $symbol$context ]($style) "
+
+[package]
+symbol = " "
