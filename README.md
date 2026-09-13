@@ -151,3 +151,37 @@ Direct mode installs the basic Fish helper dependencies; Fastfetch, broot, PDF p
 7z extraction, and desktop notifications require their corresponding distro packages.
 Personal Config Bible/backup commands, SSH-agent startup, music-player autostart,
 and Arch-only maintenance shortcuts have not been imported into this portable setup.
+
+## Bash and Zsh customizations
+
+Bash and Zsh now share the Fish-style `eza` aliases, directory shortcuts, `mkcd`,
+`fcd`/`cdi`, `fdi`, `rgi`, Git helpers, archive extraction, broot launcher, localhost
+web server, greeting and Fastfetch. The common implementation lives in
+`modules/shell/common.sh`; each shell has its own key-binding adapter. Both
+Home Manager and direct mode install these files when that shell is selected.
+
+| Feature | Bash | Zsh | Fish |
+| --- | --- | --- | --- |
+| File / text picker | Ctrl-P / Ctrl-F | Ctrl-P / Ctrl-F | Ctrl-P / Ctrl-F |
+| History | fzf Ctrl-R; Ctrl-H when its widget exists | fzf Ctrl-R; Ctrl-H when its widget exists | Ctrl-R / Ctrl-H |
+| Directory shortcuts | aliases | aliases | abbreviations |
+| Syntax / suggestions | native Readline completion | Home Manager enables highlighting and autosuggestions | built in, with custom colors |
+| Notifications | `notify-run COMMAND` | `notify-run COMMAND` | automatic long-command notifications |
+
+Starship, fzf and zoxide remain initialized through each shell's integration.
+Bash/Zsh preserve normal Tab behavior and use fzf's available completion support.
+Text-search pickers currently expect filenames without colons; file/directory
+pickers preserve spaces. `notify-run` preserves the command's exit status and
+requires `notify-send` for desktop notifications. Direct mode requires optional
+Fastfetch/broot/preview packages just as the Fish setup does; automatic Zsh
+highlighting and suggestions are currently provided by Home Manager mode.
+
+To switch your VM to Bash or Zsh:
+
+```sh
+./install.sh --apply --backend home-manager --shell bash
+# Or choose --shell zsh. For a clean direct-mode account, use --backend native.
+```
+
+Accept the login-shell prompt, then log out and back in. Your current Fish
+configuration on your main computer is unaffected by updates to this repository.

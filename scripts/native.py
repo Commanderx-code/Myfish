@@ -14,7 +14,7 @@ def package_plan(machine, manager):
              'bat': 'bat', 'eza': 'eza', 'jq': 'jq', 'fzf': 'fzf', 'zoxide': 'zoxide', 'curl': 'curl', 'tar': 'tar'}
     if shell != 'keep':
         tools[shell] = shell
-    if shell == 'fish':
+    if shell != 'keep':
         tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git'})
     if machine['features']['neovim']:
         tools['nvim'] = 'neovim'
@@ -64,6 +64,11 @@ command -v zoxide >/dev/null && eval "$(zoxide init {shell})"
 done
 unset commander_fzf
 '''
+        shell_source = Path(__file__).resolve().parents[1] / 'modules/shell'
+        extension = 'bash.sh' if shell == 'bash' else 'zsh.zsh'
+        for name in ['common.sh', extension]:
+            files[config / 'commander-os/shell' / name] = (shell_source / name).read_text()
+            files[config / f'commander-os/init.{shell}'] += f'\n. "${{XDG_CONFIG_HOME:-$HOME/.config}}/commander-os/shell/{name}"\n'
         startup = home / ('.bashrc' if shell == 'bash' else '.zshrc')
         original = startup.read_text() if startup.exists() else ''
         marker = '# Commander-os shell integration'
@@ -76,6 +81,7 @@ unset commander_fzf
             files[config / 'fish' / source.relative_to(fish_source)] = source.read_text()
         files[home / '.local/bin/fzf-preview'] = (fish_source.parent / 'fzf-preview').read_text()
     if shell != 'keep':
+        files[home / '.local/bin/fzf-preview'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-preview').read_text()
         files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
     if machine['features']['neovim']:
         # Do not replace an existing editor configuration in direct mode.
@@ -156,7 +162,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
             binary_dir.mkdir(parents=True, exist_ok=True)
             subprocess.run(['sh', str(script), '--yes', '--bin-dir', str(binary_dir)], check=True)
     write_configs(files)
-    if shell == 'fish':
+    if shell != 'keep':
         (home / '.local/bin/fzf-preview').chmod(0o700)
     configure_login(machine, native=True)
     print('Direct installation complete. Existing Neovim configuration was preserved if present.')

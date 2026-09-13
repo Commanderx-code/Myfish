@@ -35,6 +35,7 @@
       });
       devShells = forAllSystems (system: {
         default = nixpkgs.legacyPackages.${system}.mkShell {
+          COMMANDER_TEST_BASH = "${nixpkgs.legacyPackages.${system}.bashInteractive}/bin/bash";
           packages = with nixpkgs.legacyPackages.${system}; [
             python3
             fish

@@ -30,7 +30,7 @@ in
       jq
       nerd-fonts.jetbrains-mono
     ]
-    ++ lib.optionals (shell == "fish") (
+    ++ lib.optionals (shell != "keep") (
       with pkgs;
       [
         fastfetch
@@ -50,17 +50,17 @@ in
         git
       ]
     );
-  xdg.configFile = lib.mkIf (shell == "fish") {
-    "fish/conf.d" = {
+  xdg.configFile = {
+    "fish/conf.d" = lib.mkIf (shell == "fish") {
       source = ./fish/conf.d;
       recursive = true;
     };
-    "fish/functions" = {
+    "fish/functions" = lib.mkIf (shell == "fish") {
       source = ./fish/functions;
       recursive = true;
     };
   };
-  home.file.".local/bin/fzf-preview" = lib.mkIf (shell == "fish") {
+  home.file.".local/bin/fzf-preview" = lib.mkIf (shell != "keep") {
     source = ./fzf-preview;
     executable = true;
   };
@@ -71,17 +71,19 @@ in
   };
   programs.bash = lib.mkIf (shell == "bash") {
     enable = true;
-    shellAliases = {
-      ll = "eza -la";
-      gs = "git status";
-    };
+    initExtra = lib.mkAfter ''
+      source ${./shell/common.sh}
+      source ${./shell/bash.sh}
+    '';
   };
   programs.zsh = lib.mkIf (shell == "zsh") {
     enable = true;
-    shellAliases = {
-      ll = "eza -la";
-      gs = "git status";
-    };
+    autosuggestion.enable = true;
+    syntaxHighlighting.enable = true;
+    initContent = lib.mkAfter ''
+      source ${./shell/common.sh}
+      source ${./shell/zsh.zsh}
+    '';
   };
   programs.starship = {
     enable = shell != "keep";
