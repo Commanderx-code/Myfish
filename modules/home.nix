@@ -16,24 +16,58 @@ in
   targets.genericLinux.enable = true;
   xdg.enable = true;
   fonts.fontconfig.enable = true;
-  home.packages = with pkgs; [
-    # Keep login shells available if the user declines a later shell change.
-    bashInteractive
-    fish
-    zsh
-    ripgrep
-    fd
-    bat
-    eza
-    jq
-    nerd-fonts.jetbrains-mono
-  ];
+  home.packages =
+    with pkgs;
+    [
+      # Keep login shells available if the user declines a later shell change.
+      bashInteractive
+      fish
+      zsh
+      ripgrep
+      fd
+      bat
+      eza
+      jq
+      nerd-fonts.jetbrains-mono
+    ]
+    ++ lib.optionals (shell == "fish") (
+      with pkgs;
+      [
+        fastfetch
+        broot
+        chafa
+        file
+        poppler-utils
+        trash-cli
+        unzip
+        p7zip
+        gnutar
+        gzip
+        bzip2
+        xz
+        python3
+        libnotify
+        git
+      ]
+    );
+  xdg.configFile = lib.mkIf (shell == "fish") {
+    "fish/conf.d" = {
+      source = ./fish/conf.d;
+      recursive = true;
+    };
+    "fish/functions" = {
+      source = ./fish/functions;
+      recursive = true;
+    };
+  };
+  home.file.".local/bin/fzf-preview" = lib.mkIf (shell == "fish") {
+    source = ./fzf-preview;
+    executable = true;
+  };
   programs.fish = lib.mkIf (shell == "fish") {
     enable = true;
-    shellAliases = {
-      ll = "eza -la";
-      gs = "git status";
-    };
+    interactiveShellInit = lib.mkAfter "fish_user_key_bindings";
+
   };
   programs.bash = lib.mkIf (shell == "bash") {
     enable = true;

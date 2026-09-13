@@ -128,3 +128,26 @@ ARM, and cross-distro activation testing remains in progress. macOS is unsupport
 The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash),
 with independently implemented installers and selectable shells. Automatic terminal font selection, direct-mode font installation, and desktop
 integration remain future work.
+
+## Fish customizations
+
+Fish now includes the portable customizations from the personal dotfiles:
+
+- Colored, icon-based `ls`, `ll`, `la`, `tree`, sort/filter variants and Git status listings.
+- `..`, `...`, `bd`, and `home` navigation abbreviations; `mkcd`, `fcd`/`cdi`, `dirsize`, and `psg`.
+- Ctrl-P file picker, Ctrl-F text search, Ctrl-H fuzzy history, and `**` followed by Tab for file completion. Ctrl-R remains available.
+- File, image and PDF previews; Ctrl-/ toggles the preview pane. Image previews depend on terminal sixel support.
+- `gcom` stages and commits; `lazyg` additionally pushes, stopping on errors.
+- `extract`, broot's `br` launcher, and `serve` (localhost only, port 8000 by default).
+- Syntax colors, a username-based greeting, Fastfetch when installed, and long-command notifications.
+
+`rm` uses the trash when `trash-cli` is installed; `cp` and `mv` ask before overwriting.
+Use `command rm`, `command cp`, or `command mv` for the underlying utilities.
+Set `COMMANDER_QUIET=1` before launching Fish to suppress the greeting and Fastfetch.
+The notification plugin retains its MIT license in `modules/fish/conf.d/80-done.fish`.
+
+Home Manager installs the preview, archive, notification, Fastfetch and broot dependencies.
+Direct mode installs the basic Fish helper dependencies; Fastfetch, broot, PDF previews,
+7z extraction, and desktop notifications require their corresponding distro packages.
+Personal Config Bible/backup commands, SSH-agent startup, music-player autostart,
+and Arch-only maintenance shortcuts have not been imported into this portable setup.

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+file="${1:-}"
+[ -z "$file" ] && exit 0
+
+file="${file/#\~/$HOME}"
+
+if [ ! -e "$file" ]; then
+    echo "File not found:"
+    echo "$file"
+    exit 0
+fi
+
+cols="${FZF_PREVIEW_COLUMNS:-80}"
+lines="${FZF_PREVIEW_LINES:-30}"
+
+cols=$((cols > 6 ? cols - 6 : cols))
+lines=$((lines > 4 ? lines - 4 : lines))
+
+if [ -d "$file" ]; then
+    if command -v eza >/dev/null 2>&1; then
+        eza -la --tree --level=2 --icons=always --color=always "$file" 2>/dev/null | head -300
+    else
+        ls -la "$file" 2>/dev/null
+    fi
+    exit 0
+fi
+
+mime="$(file --mime-type -Lb "$file" 2>/dev/null || true)"
+
+case "$mime" in
+       image/*)
+        if command -v chafa >/dev/null 2>&1; then
+            chafa --format=sixels --animate=off --size="${cols}x${lines}" "$file" 2>/dev/null
+        else
+            file "$file"
+            echo
+            echo "Install chafa for image previews:"
+            echo "Install the chafa package using your package manager."
+        fi
+        ;;
+
+    application/pdf)
+        if command -v pdftotext >/dev/null 2>&1; then
+            pdftotext -l 3 "$file" - 2>/dev/null | sed -n '1,220p'
+        else
+            file "$file"
+            echo
+            echo "Install poppler for PDF previews:"
+            echo "Install the package providing pdftotext using your package manager."
+        fi
+        ;;
+
+    text/*|application/json|application/xml|application/x-shellscript|application/javascript|application/toml|application/yaml|application/x-yaml)
+        if command -v bat >/dev/null 2>&1; then
+            bat --style=numbers --color=always --line-range :400 "$file" 2>/dev/null
+        else
+            sed -n '1,400p' "$file" 2>/dev/null
+        fi
+        ;;
+
+    *)
+        file "$file"
+        echo
+        echo "No preview for:"
+        echo "$mime"
+        ;;
+esac
