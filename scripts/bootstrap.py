@@ -49,6 +49,41 @@ def default_machine():
     })
 
 
+def configure_fish_login(machine):
+    if not machine['features']['fish']:
+        return
+    # Keep the profile path: resolving to a versioned store path breaks upgrades.
+    candidates = [Path(machine['homeDirectory']) / '.nix-profile/bin/fish',
+                  Path(os.environ.get('XDG_STATE_HOME', str(Path(machine['homeDirectory']) / '.local/state'))) / 'nix/profile/bin/fish']
+    fish = next((p for p in candidates if os.access(p, os.X_OK)), None)
+    if fish is None:
+        raise RuntimeError('Home Manager activated, but Fish was not found in the Nix profile; login shell unchanged')
+    subprocess.run([str(fish), '--no-config', '-c', 'exit 0'], check=True)
+    account = pwd.getpwuid(os.getuid())
+    if account.pw_shell == str(fish):
+        print('Fish is already your login shell.')
+        return
+    print(f'Fish is installed at {fish}. Previous login shell: {account.pw_shell}')
+    if input('Make Fish your default login shell? [Y/n] ').strip().lower() not in ('', 'y', 'yes'):
+        print('Login shell unchanged. Run fish to start it manually.')
+        return
+    if not shutil.which('sudo') or not shutil.which('chsh'):
+        raise RuntimeError('Fish is installed, but sudo and chsh are required to set the login shell')
+    state = Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'commander-os'
+    state.mkdir(parents=True, exist_ok=True)
+    previous = state / 'previous-shell.txt'
+    if not previous.exists():
+        with previous.open('x') as target:
+            target.write(account.pw_shell + '\n')
+    shells = Path('/etc/shells').read_text().splitlines()
+    if str(fish) not in shells:
+        subprocess.run(['sudo', 'tee', '-a', '/etc/shells'], input='\n' + str(fish) + '\n',
+                       text=True, stdout=subprocess.DEVNULL, check=True)
+    subprocess.run(['sudo', 'chsh', '-s', str(fish), account.pw_name], check=True)
+    print('Fish is now your login shell. Log out of the desktop and log back in.\n'
+          f'Previous shell saved at {previous}. Terminal custom-command settings can override the login shell.')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true', help='build, then ask before activating')
@@ -101,7 +136,8 @@ def main():
             return 0
         env = dict(os.environ, HOME_MANAGER_BACKUP_EXT=f'commander-os-{time.time_ns()}')
         subprocess.run([str(package / 'activate')], env=env, check=True)
-        print('Activated. Start fish to try the shell; your login shell was not changed.')
+        print('Home Manager activated successfully.')
+        configure_fish_login(machine)
     return 0
 
 

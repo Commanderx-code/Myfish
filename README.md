@@ -5,7 +5,8 @@ initial starter, not an operating-system image or a distribution installer.
 
 The default setup provides Fish, Starship, Neovim, fuzzy finding, directory
 navigation, and common CLI tools. Git and Lazygit are optional. It does not change
-your bootloader, desktop, login shell, distribution packages, or backup services.
+your bootloader, desktop or backup services. With Fish enabled, activation offers to make Fish
+your login shell. Prerequisites may be installed through your package manager.
 
 ## Get started
 
@@ -55,7 +56,13 @@ standalone Home Manager profile for this account. Try it in a separate account
 or VM first if you already use Home Manager. Unmanaged conflicting files are
 backed up with a unique `.commander-os-…` suffix; Home Manager performs its own
 collision checks. A build preview does not perform those activation checks.
-After activation, run `fish` to try the shell.
+After activation, accept the default **Y** at the Fish login-shell prompt.
+The installer verifies Fish, registers its stable Nix profile path in `/etc/shells`,
+and uses `sudo chsh` to set it for your account. Log out of the desktop and back
+in for new terminals to inherit it. Run `fish` to try it immediately. A terminal
+profile configured to run Bash explicitly must be changed to use the default shell.
+Bash is only used to launch the installer on a fresh system; your interactive
+configuration, prompt, fzf and zoxide integrations target Fish.
 
 ## Privacy and reproducibility
 
@@ -87,6 +94,11 @@ your old configuration checkout. To roll back, find the previous generation
 using `home-manager generations` and run its `/nix/store/…-home-manager-generation/activate`
 script. Then restore any unmanaged files from their `.commander-os-…` backups as
 needed. Generation rollback does not automatically restore those backup files.
+Before uninstalling or disabling Fish, change your login shell back using
+`chsh -s /bin/bash` (or the path saved in
+`~/.local/state/commander-os/previous-shell.txt`). The Fish login shell relies on
+the Home Manager profile remaining installed. Generation rollback does not undo
+`chsh` or the `/etc/shells` entry.
 On a first installation there may be no previous generation; use
 `home-manager uninstall`, inspect the affected files, and restore the backups.
 

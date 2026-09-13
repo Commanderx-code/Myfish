@@ -55,9 +55,11 @@ class BootstrapTests(unittest.TestCase):
         with patch.object(sys, 'argv', argv), patch.object(bootstrap.os, 'geteuid', return_value=1000), \
              patch.object(bootstrap.shutil, 'which', return_value='/fixture/nix'), \
              patch.object(bootstrap.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, str(package))) as run, \
-             patch('builtins.input', return_value=answer) as prompt:
+             patch('builtins.input', return_value=answer) as prompt, \
+             patch.object(bootstrap, 'configure_fish_login') as login:
             self.assertEqual(bootstrap.main(), 0)
             self.assertEqual(config.read_bytes(), original)
+            self.assertEqual(login.call_count, int(apply and answer == 'APPLY'))
             return run.call_args_list, prompt.call_count
 
     def test_preview_never_activates_or_prompts(self):
@@ -74,6 +76,46 @@ class BootstrapTests(unittest.TestCase):
         calls, prompts = self.run_preview(apply=True, answer='APPLY')
         self.assertEqual(len(calls), 2)
         self.assertTrue(calls[1].kwargs['env']['HOME_MANAGER_BACKUP_EXT'].startswith('commander-os-'))
+
+    def test_disabled_fish_never_changes_shell(self):
+        self.machine['features']['fish'] = False
+        with patch.object(bootstrap.subprocess, 'run') as run:
+            bootstrap.configure_fish_login(self.machine)
+            run.assert_not_called()
+
+    def test_missing_fish_never_changes_shell(self):
+        with patch.object(bootstrap.os, 'access', return_value=False), \
+             patch.object(bootstrap.subprocess, 'run') as run:
+            with self.assertRaises(RuntimeError):
+                bootstrap.configure_fish_login(self.machine)
+            run.assert_not_called()
+
+    def test_declining_fish_login_only_checks_executable(self):
+        from types import SimpleNamespace
+        account = SimpleNamespace(pw_shell='/bin/bash', pw_name='example')
+        with patch.object(bootstrap.os, 'access', return_value=True), \
+             patch.object(bootstrap.pwd, 'getpwuid', return_value=account), \
+             patch.object(bootstrap.subprocess, 'run') as run, \
+             patch('builtins.input', return_value='n'):
+            bootstrap.configure_fish_login(self.machine)
+            self.assertEqual(run.call_count, 1)
+            self.assertEqual(run.call_args.args[0][-2:], ['-c', 'exit 0'])
+
+    def test_fish_login_registers_stable_path_and_saves_previous_shell(self):
+        from types import SimpleNamespace
+        account = SimpleNamespace(pw_shell='/bin/bash', pw_name='example')
+        with patch.dict(os.environ, XDG_STATE_HOME=str(self.root / 'state')), \
+             patch.object(bootstrap.os, 'access', return_value=True), \
+             patch.object(bootstrap.pwd, 'getpwuid', return_value=account), \
+             patch.object(bootstrap.shutil, 'which', return_value='/usr/bin/fixture'), \
+             patch.object(Path, 'read_text', return_value='/bin/bash\n'), \
+             patch.object(bootstrap.subprocess, 'run') as run, \
+             patch('builtins.input', return_value=''):
+            bootstrap.configure_fish_login(self.machine)
+            self.assertEqual(run.call_count, 3)
+            self.assertEqual(run.call_args.args[0],
+                             ['sudo', 'chsh', '-s', '/home/example/.nix-profile/bin/fish', 'example'])
+        self.assertEqual((self.root / 'state/commander-os/previous-shell.txt').read_text(), '/bin/bash\n')
 
 
 if __name__ == '__main__':
