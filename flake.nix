@@ -33,6 +33,16 @@
       checks = forAllSystems (system: {
         home = (makeHome system).activationPackage;
       });
+      devShells = forAllSystems (system: {
+        default = nixpkgs.legacyPackages.${system}.mkShell {
+          packages = with nixpkgs.legacyPackages.${system}; [
+            python3
+            fish
+            zsh
+            shellcheck
+          ];
+        };
+      });
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
 }

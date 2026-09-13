@@ -1,16 +1,10 @@
 # Commander-os
 
-A portable Linux home environment built with Nix and Home Manager. This is an
-initial starter, not an operating-system image or a distribution installer.
+A Linux terminal environment with a guided installer. Choose **Home Manager** or
+**direct installation**, then choose **Fish, Bash, Zsh, or keep your current shell**.
+This is a starter project, not an operating system image.
 
-The default setup provides Fish, Starship, Neovim, fuzzy finding, directory
-navigation, and common CLI tools. Git and Lazygit are optional. It does not change
-your bootloader, desktop or backup services. With Fish enabled, activation offers to make Fish
-your login shell. Prerequisites may be installed through your package manager.
-
-## Get started
-
-Run the guided installer as your normal user:
+## Install
 
 ```sh
 git clone https://github.com/Commanderx-code/Commander-os.git
@@ -18,111 +12,116 @@ cd Commander-os
 ./install.sh --apply
 ```
 
-You can also download and extract this repository using GitHub's **Code →
-Download ZIP** button if Git is not installed. Open a terminal in the extracted
-folder and run `bash install.sh --apply`.
+Without Git, download and extract **Code → Download ZIP** on GitHub, then run
+`bash install.sh --apply` from the extracted folder. Run as your normal user,
+without sudo; the installer requests elevated access only where needed.
 
-The script detects missing Python 3, Git, curl and xz, and offers to install them
-using apt, dnf or pacman. It shows the package list and asks before using sudo.
-On Arch, it uses the existing package database; if installation fails due to stale
-mirrors, perform your normal full system update before retrying.
+The installer asks which installation mode and shell you want before installing
+prerequisites. A new configuration defaults to Fish; existing settings are reused
+unless you select another shell. It shows a plan and asks for `APPLY` before
+activating or writing your shell configuration. Log out and back in after
+accepting a login-shell change. Terminal profiles set to run Bash explicitly
+must be changed to use the account's default shell.
 
-If Nix is missing, the script offers to download and run the
-[official Nix installer](https://nixos.org/download/), then loads Nix into the
-current process and continues. Automatic Nix installation supports systemd Linux
-with SELinux disabled. Existing broken Nix installations and unsupported systems
-stop with guidance instead of modifying the host. Home Manager needs no separate
-installation: Nix builds it along with the selected tools.
+| Mode | Installation and updates | Configuration recovery |
+| --- | --- | --- |
+| Home Manager | Installs Nix if needed; pinned packages from `flake.lock` | Home Manager generations and backups of conflicting files |
+| Direct | Uses apt, dnf, or pacman; Starship's official installer if needed | Timestamped copies of changed configuration files |
 
-Settings are created at `~/.config/commander-os/machine.json` (or under your
-`XDG_CONFIG_HOME`). Defaults come from your current account. Edit `fish`, `neovim`
-and `development` to select features. Use `./install.sh --init` to create settings
-before building. Never run the whole script with sudo.
+Both modes provide CLI tools, Starship, zoxide, fzf and optional Neovim. Shell
+configuration follows your selected shell. Direct development mode installs Git;
+Lazygit is currently included only in Home Manager development mode. Direct mode
+preserves any existing Neovim configuration. Package versions follow the distro
+in direct mode. Home Manager keeps all three supported shell executables installed
+so declining a subsequent shell change does not remove your existing login shell.
 
-To prepare dependencies and build without activation, run `./install.sh`.
-For a preview that must not install prerequisites, use `./install.sh --no-install`.
-Package installation, Nix installation, and activation each explain their changes
-before asking for confirmation. Declining stops that stage.
+Direct mode never installs Nix or Home Manager. It refuses an existing Home
+Manager profile or symlink-managed target configuration; test it in a separate
+account or VM instead of mixing managers. Keeping the current shell skips shell
+configuration and login-shell changes; it still installs selected tools. Neither
+mode configures your desktop, bootloader or backup services.
 
-Inspect the printed `home-files` directory to see the generated configuration.
-When ready:
+## Settings and previews
+
+Settings live outside Git at `~/.config/commander-os/machine.json` (respecting
+`XDG_CONFIG_HOME`). The `shell` field accepts `fish`, `bash`, `zsh`, or `keep`.
+`features.neovim` and `features.development` control optional tools. Older settings
+using `features.fish` remain supported; an explicit `shell` takes precedence.
 
 ```sh
-./install.sh --apply
+# Create settings without a Home Manager build:
+./install.sh --init --backend home-manager --shell fish
+
+# Build a Home Manager preview:
+./install.sh --backend home-manager --shell bash
+
+# Show the direct-install plan without installing its tools or writing shell files:
+./install.sh --backend native --shell zsh
+
+# Apply direct mode:
+./install.sh --apply --backend native --shell fish
 ```
 
-This builds again, then requires you to type `APPLY`. It replaces any existing
-standalone Home Manager profile for this account. Try it in a separate account
-or VM first if you already use Home Manager. Unmanaged conflicting files are
-backed up with a unique `.commander-os-…` suffix; Home Manager performs its own
-collision checks. A build preview does not perform those activation checks.
-After activation, accept the default **Y** at the Fish login-shell prompt.
-The installer verifies Fish, registers its stable Nix profile path in `/etc/shells`,
-and uses `sudo chsh` to set it for your account. Log out of the desktop and back
-in for new terminals to inherit it. Run `fish` to try it immediately. A terminal
-profile configured to run Bash explicitly must be changed to use the default shell.
-Bash is only used to launch the installer on a fresh system; your interactive
-configuration, prompt, fzf and zoxide integrations target Fish.
+Missing Python may be installed after confirmation, even for a preview. Use
+`--no-install` to prohibit dependency installation. Explicit `--backend` selects
+a mode without a menu; `--shell` selects and saves a shell choice. Unknown command
+arguments fail before dependency installation.
 
-## Privacy and reproducibility
+Home Manager mode uses an explicit source-file allowlist and supplies validated
+machine settings in a temporary build tree. You do not need to track personal
+settings in Git. Nix stores usernames and home paths in its normally readable
+store: never put secrets in Nix settings. Preserve `home.stateVersion` on updates.
 
-Machine settings live outside the checkout. The installer copies only the flake,
-lock file, example settings and modules into a temporary build tree, then adds
-validated machine settings. This avoids Git's untracked-file filtering without
-requiring personal settings in commits. Nix stores usernames and home paths in
-its normally readable store: **never put secrets in Nix configuration**.
+## System prerequisites
 
-The example account is only for validation. Use the installer for your account;
-do not directly activate the flake's example configuration. The tracked lock
-file pins Nixpkgs and Home Manager. Preserve `home.stateVersion` when upgrading.
+The bootstrap supports apt, dnf and pacman. Automatic Nix installation uses the
+[official Nix installer](https://nixos.org/download/) and requires systemd Linux
+with SELinux disabled. Existing incomplete Nix installations stop with guidance.
+Direct mode does not have that Nix requirement. On Arch, package installation uses
+the existing package database; do your normal full system update if it is stale.
 
-## Updates and rollback
+Direct mode uses the [official Starship installer](https://starship.rs/guide/)
+for a missing Starship executable and places it in `~/.local/bin`. Downloads and
+package installation happen only after the displayed installation plan is accepted.
 
-Pull source updates and preview before applying:
+## Updates and recovery
 
 ```sh
 git pull --ff-only
-./install.sh
 ./install.sh --apply
 ```
 
-Maintainers can update dependencies with `nix flake update`, then run the checks
-below before committing the changed lock file.
+Before replacing an existing Home Manager configuration, record
+`home-manager generations` and keep its configuration checkout. Run a previous
+generation's `/nix/store/…-home-manager-generation/activate` to roll back, then
+restore unmanaged files from `.commander-os-…` backups as needed. On a first
+installation, `home-manager uninstall` can remove the managed home environment.
+See the [Home Manager manual](https://nix-community.github.io/home-manager/).
 
-Before replacing an existing profile, record `home-manager generations` and keep
-your old configuration checkout. To roll back, find the previous generation
-using `home-manager generations` and run its `/nix/store/…-home-manager-generation/activate`
-script. Then restore any unmanaged files from their `.commander-os-…` backups as
-needed. Generation rollback does not automatically restore those backup files.
-Before uninstalling or disabling Fish, change your login shell back using
-`chsh -s /bin/bash` (or the path saved in
-`~/.local/state/commander-os/previous-shell.txt`). The Fish login shell relies on
-the Home Manager profile remaining installed. Generation rollback does not undo
-`chsh` or the `/etc/shells` entry.
-On a first installation there may be no previous generation; use
-`home-manager uninstall`, inspect the affected files, and restore the backups.
+Before removing a Home Manager shell, restore your login shell using
+`chsh -s /bin/bash` or the previous path recorded at
+`~/.local/state/commander-os/previous-shell.txt` (respecting `XDG_STATE_HOME`).
+Generation rollback does not undo `chsh` or `/etc/shells` registration. Do not
+remove the profile your login shell points to before changing it back.
 
-See the [Home Manager manual](https://nix-community.github.io/home-manager/) for
-profile management. Avoid garbage-collecting previous generations while testing.
+Direct mode backs up changed files as `FILE.commander-os-TIMESTAMP`, preserves
+existing Bash/Zsh startup contents, and avoids duplicate startup entries on
+repeat runs. To undo it, first restore the previous login shell. Restore desired
+backup files and remove the Commander-os startup block from `.bashrc` or `.zshrc`,
+or remove `~/.config/fish/conf.d/commander-os.fish`. Remove Commander-os's shell
+snippets under `~/.config/commander-os/` if no longer needed. Tools installed by
+your package manager remain installed; there is no automatic native uninstaller.
 
-## Support and development
-
-The target architectures are x86_64 and aarch64 Linux. The initial build is
-validated on x86_64; fresh-machine, ARM and cross-distribution activation testing
-are still pending. NixOS users should avoid managing the same home with both a
-system Home Manager module and this standalone installer. macOS is not supported.
+## Validation and scope
 
 ```sh
-python3 -B -m unittest discover -s tests -v
-bash -n install.sh scripts/prerequisites.sh
-nix --extra-experimental-features 'nix-command flakes' flake check
+nix develop --command python3 -B -m unittest discover -s tests -v
+nix develop --command shellcheck install.sh scripts/prerequisites.sh
+nix flake check
 ```
 
-Planned next steps: clean-VM installation tests, optional desktop styling, and
-optional backup integrations with user-provided destinations and credentials.
-No personal repository history, system snapshots, wallet data, or bundled
-executables are included.
-
-The guided dependency setup is inspired by the workflow of
-[ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash); Commander-os
-uses its own installer and manages the home environment through Home Manager.
+Targets: x86_64 and aarch64 Linux. Builds are tested on x86_64; clean-machine,
+ARM, and cross-distro activation testing remains in progress. macOS is unsupported.
+The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash),
+with independently implemented installers and selectable shells. Fuller visual
+themes, Nerd Font setup and desktop integration remain future work.

@@ -4,6 +4,9 @@
   machine,
   ...
 }:
+let
+  shell = machine.shell or (if machine.features.fish then "fish" else "keep");
+in
 {
   home.username = machine.username;
   home.homeDirectory = machine.homeDirectory;
@@ -13,13 +16,31 @@
   targets.genericLinux.enable = true;
   xdg.enable = true;
   home.packages = with pkgs; [
+    # Keep login shells available if the user declines a later shell change.
+    bashInteractive
+    fish
+    zsh
     ripgrep
     fd
     bat
     eza
     jq
   ];
-  programs.fish = lib.mkIf machine.features.fish {
+  programs.fish = lib.mkIf (shell == "fish") {
+    enable = true;
+    shellAliases = {
+      ll = "eza -la";
+      gs = "git status";
+    };
+  };
+  programs.bash = lib.mkIf (shell == "bash") {
+    enable = true;
+    shellAliases = {
+      ll = "eza -la";
+      gs = "git status";
+    };
+  };
+  programs.zsh = lib.mkIf (shell == "zsh") {
     enable = true;
     shellAliases = {
       ll = "eza -la";
@@ -27,8 +48,10 @@
     };
   };
   programs.starship = {
-    enable = machine.features.fish;
-    enableFishIntegration = machine.features.fish;
+    enable = shell != "keep";
+    enableFishIntegration = shell == "fish";
+    enableBashIntegration = shell == "bash";
+    enableZshIntegration = shell == "zsh";
     settings = {
       add_newline = false;
       character.success_symbol = "[❯](bold green)";
@@ -36,11 +59,15 @@
   };
   programs.fzf = {
     enable = true;
-    enableFishIntegration = machine.features.fish;
+    enableFishIntegration = shell == "fish";
+    enableBashIntegration = shell == "bash";
+    enableZshIntegration = shell == "zsh";
   };
   programs.zoxide = {
     enable = true;
-    enableFishIntegration = machine.features.fish;
+    enableFishIntegration = shell == "fish";
+    enableBashIntegration = shell == "bash";
+    enableZshIntegration = shell == "zsh";
   };
   programs.neovim = lib.mkIf machine.features.neovim {
     enable = true;

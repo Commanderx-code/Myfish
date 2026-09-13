@@ -56,7 +56,7 @@ class BootstrapTests(unittest.TestCase):
              patch.object(bootstrap.shutil, 'which', return_value='/fixture/nix'), \
              patch.object(bootstrap.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, str(package))) as run, \
              patch('builtins.input', return_value=answer) as prompt, \
-             patch.object(bootstrap, 'configure_fish_login') as login:
+             patch.object(bootstrap, 'configure_shell_login') as login:
             self.assertEqual(bootstrap.main(), 0)
             self.assertEqual(config.read_bytes(), original)
             self.assertEqual(login.call_count, int(apply and answer == 'APPLY'))
@@ -80,14 +80,14 @@ class BootstrapTests(unittest.TestCase):
     def test_disabled_fish_never_changes_shell(self):
         self.machine['features']['fish'] = False
         with patch.object(bootstrap.subprocess, 'run') as run:
-            bootstrap.configure_fish_login(self.machine)
+            bootstrap.configure_shell_login(self.machine)
             run.assert_not_called()
 
     def test_missing_fish_never_changes_shell(self):
         with patch.object(bootstrap.os, 'access', return_value=False), \
              patch.object(bootstrap.subprocess, 'run') as run:
             with self.assertRaises(RuntimeError):
-                bootstrap.configure_fish_login(self.machine)
+                bootstrap.configure_shell_login(self.machine)
             run.assert_not_called()
 
     def test_declining_fish_login_only_checks_executable(self):
@@ -97,7 +97,7 @@ class BootstrapTests(unittest.TestCase):
              patch.object(bootstrap.pwd, 'getpwuid', return_value=account), \
              patch.object(bootstrap.subprocess, 'run') as run, \
              patch('builtins.input', return_value='n'):
-            bootstrap.configure_fish_login(self.machine)
+            bootstrap.configure_shell_login(self.machine)
             self.assertEqual(run.call_count, 1)
             self.assertEqual(run.call_args.args[0][-2:], ['-c', 'exit 0'])
 
@@ -111,7 +111,7 @@ class BootstrapTests(unittest.TestCase):
              patch.object(Path, 'read_text', return_value='/bin/bash\n'), \
              patch.object(bootstrap.subprocess, 'run') as run, \
              patch('builtins.input', return_value=''):
-            bootstrap.configure_fish_login(self.machine)
+            bootstrap.configure_shell_login(self.machine)
             self.assertEqual(run.call_count, 3)
             self.assertEqual(run.call_args.args[0],
                              ['sudo', 'chsh', '-s', '/home/example/.nix-profile/bin/fish', 'example'])

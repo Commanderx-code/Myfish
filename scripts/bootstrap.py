@@ -17,7 +17,7 @@ FEATURES = ('fish', 'neovim', 'development')
 
 
 def validate(machine):
-    if set(machine) != {'username', 'homeDirectory', 'system', 'features'}:
+    if set(machine) - {'username', 'homeDirectory', 'system', 'features', 'shell'} or not {'username', 'homeDirectory', 'system', 'features'} <= set(machine):
         raise ValueError('Machine settings must contain only username, homeDirectory, system, features')
     if not isinstance(machine['username'], str) or not machine['username'] or '/' in machine['username']:
         raise ValueError('Invalid username')
@@ -29,6 +29,8 @@ def validate(machine):
         raise ValueError('features must contain fish, neovim, development')
     if any(type(v) is not bool for v in machine['features'].values()):
         raise ValueError('Feature values must be true or false')
+    if machine.get('shell', 'fish' if machine['features']['fish'] else 'keep') not in ('bash', 'fish', 'zsh', 'keep'):
+        raise ValueError('shell must be bash, fish, zsh or keep')
     return machine
 
 
@@ -49,26 +51,29 @@ def default_machine():
     })
 
 
-def configure_fish_login(machine):
-    if not machine['features']['fish']:
+def configure_shell_login(machine, native=False):
+    shell = machine.get('shell', 'fish' if machine['features']['fish'] else 'keep')
+    if shell == 'keep':
         return
     # Keep the profile path: resolving to a versioned store path breaks upgrades.
-    candidates = [Path(machine['homeDirectory']) / '.nix-profile/bin/fish',
-                  Path(os.environ.get('XDG_STATE_HOME', str(Path(machine['homeDirectory']) / '.local/state'))) / 'nix/profile/bin/fish']
+    candidates = [Path(machine['homeDirectory']) / f'.nix-profile/bin/{shell}',
+                  Path(os.environ.get('XDG_STATE_HOME', str(Path(machine['homeDirectory']) / '.local/state'))) / f'nix/profile/bin/{shell}']
+    if native:
+        candidates = [Path('/usr/bin') / shell, Path('/bin') / shell]
     fish = next((p for p in candidates if os.access(p, os.X_OK)), None)
     if fish is None:
-        raise RuntimeError('Home Manager activated, but Fish was not found in the Nix profile; login shell unchanged')
-    subprocess.run([str(fish), '--no-config', '-c', 'exit 0'], check=True)
+        raise RuntimeError(f'Home Manager activated, but {shell} was not found in the Nix profile; login shell unchanged')
+    subprocess.run([str(fish), *({'fish': ['--no-config'], 'bash': ['--noprofile', '--norc'], 'zsh': ['-f']}[shell]), '-c', 'exit 0'], check=True)
     account = pwd.getpwuid(os.getuid())
     if account.pw_shell == str(fish):
-        print('Fish is already your login shell.')
+        print(f'{shell} is already your login shell.')
         return
-    print(f'Fish is installed at {fish}. Previous login shell: {account.pw_shell}')
-    if input('Make Fish your default login shell? [Y/n] ').strip().lower() not in ('', 'y', 'yes'):
-        print('Login shell unchanged. Run fish to start it manually.')
+    print(f'{shell} is installed at {fish}. Previous login shell: {account.pw_shell}')
+    if input(f'Make {shell} your default login shell? [Y/n] ').strip().lower() not in ('', 'y', 'yes'):
+        print(f'Login shell unchanged. Run {shell} to start it manually.')
         return
     if not shutil.which('sudo') or not shutil.which('chsh'):
-        raise RuntimeError('Fish is installed, but sudo and chsh are required to set the login shell')
+        raise RuntimeError(f'{shell} is installed, but sudo and chsh are required to set the login shell')
     state = Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'commander-os'
     state.mkdir(parents=True, exist_ok=True)
     previous = state / 'previous-shell.txt'
@@ -80,12 +85,15 @@ def configure_fish_login(machine):
         subprocess.run(['sudo', 'tee', '-a', '/etc/shells'], input='\n' + str(fish) + '\n',
                        text=True, stdout=subprocess.DEVNULL, check=True)
     subprocess.run(['sudo', 'chsh', '-s', str(fish), account.pw_name], check=True)
-    print('Fish is now your login shell. Log out of the desktop and log back in.\n'
+    print(f'{shell} is now your login shell. Log out of the desktop and log back in.\n'
           f'Previous shell saved at {previous}. Terminal custom-command settings can override the login shell.')
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--backend', choices=['home-manager', 'native'], default='home-manager')
+    parser.add_argument('--no-install', action='store_true')
+    parser.add_argument('--shell', choices=['bash', 'fish', 'zsh', 'keep'])
     parser.add_argument('--apply', action='store_true', help='build, then ask before activating')
     parser.add_argument('--init', action='store_true', help='create settings only; do not build')
     parser.add_argument('--config', type=Path, default=Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'commander-os/machine.json')
@@ -101,9 +109,18 @@ def main():
         with args.config.open('x') as target:
             target.write(json.dumps(machine, indent=2) + '\n')
         print(f'Created settings: {args.config}', flush=True)
+    if args.shell:
+        machine['shell'] = args.shell
+        machine['features']['fish'] = args.shell == 'fish'
+        validate(machine)
+        args.config.write_text(json.dumps(machine, indent=2) + '\n')
+    print('Shell: ' + machine.get('shell', 'fish' if machine['features']['fish'] else 'keep'), flush=True)
     print('Features: ' + ', '.join(k for k, v in machine['features'].items() if v), flush=True)
     if args.init:
         return 0
+    if args.backend == 'native':
+        from native import install_native
+        return install_native(machine, apply=args.apply, install_missing=not args.no_install, configure_login=configure_shell_login)
     if not shutil.which('nix'):
         print('Nix is required; Home Manager does not need to be installed first.\n'
               'Follow https://nixos.org/download/ for your system.\n'
@@ -137,7 +154,7 @@ def main():
         env = dict(os.environ, HOME_MANAGER_BACKUP_EXT=f'commander-os-{time.time_ns()}')
         subprocess.run([str(package / 'activate')], env=env, check=True)
         print('Home Manager activated successfully.')
-        configure_fish_login(machine)
+        configure_shell_login(machine)
     return 0
 
 
