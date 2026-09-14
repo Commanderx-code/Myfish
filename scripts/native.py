@@ -204,6 +204,12 @@ unset commander_plugin
             if shell == 'bash':
                 profile = home / '.bash_profile'
                 text = profile.read_text() if profile.exists() else ''
+                if not profile.exists():
+                    # Creating .bash_profile must preserve Bash's previous login fallback.
+                    for name in ('.bash_login', '.profile'):
+                        if (home / name).is_file():
+                            text = f'[ -r "$HOME/{name}" ] && . "$HOME/{name}"\n'
+                            break
                 if '.bashrc' not in text:
                     files[profile] = text + '\n# Commander-os Bash login integration\n[ -r "$HOME/.bashrc" ] && . "$HOME/.bashrc"\n'
         startup = home / ('.bashrc' if shell == 'bash' else '.zshrc')

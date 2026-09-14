@@ -276,4 +276,4 @@ class LifecycleTests(unittest.TestCase):
         profile.symlink_to(store.parent)
         for name in ('nix', 'nix-store', 'nix-env'):
             with self.subTest(name=name), patch.object(lifecycle.shutil, 'which', return_value=str(profile / 'bin' / name)):
-                self.assertEqual(lifecycle.nix_tool(name), str(store / name))
+                self.assertEqual(lifecycle.nix_tool(name), str(store.resolve() / name))

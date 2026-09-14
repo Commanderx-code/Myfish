@@ -133,3 +133,14 @@ export -f uname brew
             result = subprocess.run(['/bin/bash', '-eu', '-c', code, 'test', str(ROOT / 'install.sh'), str(config)], text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(config.is_file())
+
+    def test_new_bash_profile_keeps_existing_login_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(host, 'is_macos', return_value=True):
+            home = Path(tmp)
+            (home / '.profile').write_text('export PERSONAL_SETTING=yes\n')
+            files = native.config_files(self.machine(home, 'bash'), home, home / '.config')
+            self.assertIn('. "$HOME/.profile"', files[home / '.bash_profile'])
+            (home / '.bash_login').write_text('export PERSONAL_SETTING=login\n')
+            files = native.config_files(self.machine(home, 'bash'), home, home / '.config')
+            self.assertIn('. "$HOME/.bash_login"', files[home / '.bash_profile'])
+            self.assertNotIn('. "$HOME/.profile"', files[home / '.bash_profile'])
