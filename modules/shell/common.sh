@@ -20,7 +20,7 @@ mkcd() {
 dirsize() { du -sh .; }
 psg() {
   [ "$#" -ge 1 ] || { echo 'Usage: psg <pattern>' >&2; return 1; }
-  pgrep -ai -- "$1"
+  if [ "$(uname -s)" = Darwin ]; then pgrep -ifl -- "$1"; else pgrep -ai -- "$1"; fi
 }
 serve() { python3 -m http.server --bind 127.0.0.1 "${1:-8000}"; }
 gcom() {
@@ -66,7 +66,7 @@ extract() {
     *.gz) command gunzip -- "$archive" ;;
     *.bz2) command bunzip2 -- "$archive" ;;
     *.xz) command unxz -- "$archive" ;;
-    *.7z|*.rar) command 7z x "$archive" ;;
+    *.7z|*.rar) if command -v 7z >/dev/null 2>&1; then command 7z x "$archive"; else command 7zz x "$archive"; fi ;;
     *) echo "Unsupported archive: $archive" >&2; return 1 ;;
   esac
 }
@@ -86,7 +86,9 @@ notify-run() {
   [ "$#" -gt 0 ] || { echo 'Usage: notify-run <command> [arguments]' >&2; return 1; }
   local result
   "$@"; result=$?
-  if command -v notify-send >/dev/null 2>&1; then
+  if [ "$(uname -s)" = Darwin ] && command -v osascript >/dev/null 2>&1; then
+    osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title "Commander-os"' -e 'end run' "Exit status: $result" >/dev/null 2>&1 || true
+  elif command -v notify-send >/dev/null 2>&1; then
     notify-send --app-name=Commander-os 'Command finished' "Exit status: $result" || true
   fi
   return "$result"
@@ -103,7 +105,12 @@ if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then al
 alias cp='cp -i' mv='mv -i'
 if command -v trash >/dev/null 2>&1; then alias rm='trash -v'; fi
 alias cat=bat ccat='command cat' grep=rg cgrep='command grep' find=fd cfind='command find'
-alias cls=clear psa='ps auxf' mountedinfo='df -hT'
+alias cls=clear
+if [ "$(uname -s)" = Darwin ]; then
+  alias psa='ps aux' mountedinfo='df -h'
+else
+  alias psa='ps auxf' mountedinfo='df -hT'
+fi
 alias da='date "+%Y-%m-%d %A %T %Z"'
 alias gs='git status' ga='git add' gc='git commit' gp='git push' gl='git pull'
 if command -v lazygit >/dev/null 2>&1; then alias lg=lazygit; fi

@@ -12,6 +12,9 @@ import lifecycle
 
 machine = json.loads((ROOT / 'machine.example.json').read_text())
 machine['shell'] = 'zsh'
+machine['system'] = lifecycle.host.system()
+if lifecycle.host.is_macos():
+    machine['homeDirectory'] = '/Users/example'
 with tempfile.TemporaryDirectory(prefix='commander-build-check-') as temp:
     source = Path(temp) / 'home'
     source.mkdir()

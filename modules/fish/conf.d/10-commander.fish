@@ -37,8 +37,13 @@ alias cgrep 'command grep'
 alias find fd
 alias cfind 'command find'
 alias cls clear
-alias psa 'ps auxf'
-alias mountedinfo 'df -hT'
+if test (uname -s) = Darwin
+    alias psa 'ps aux'
+    alias mountedinfo 'df -h'
+else
+    alias psa 'ps auxf'
+    alias mountedinfo 'df -hT'
+end
 alias da 'date "+%Y-%m-%d %A %T %Z"'
 alias gs 'git status'
 alias ga 'git add'

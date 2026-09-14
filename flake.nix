@@ -1,5 +1,5 @@
 {
-  description = "Commander-os: a portable Linux home environment";
+  description = "Commander-os: a portable Linux and macOS home environment";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     home-manager = {
@@ -18,6 +18,8 @@
       systems = [
         "x86_64-linux"
         "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
       makeHome =

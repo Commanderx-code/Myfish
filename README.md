@@ -1,6 +1,6 @@
 # Commander-os
 
-A Linux terminal environment with a guided installer. Choose **Home Manager** or
+A Linux and macOS terminal environment with a guided installer. Choose **Home Manager** or
 **direct installation**, then choose **Fish, Bash, Zsh, or keep your current shell**.
 This is a starter project, not an operating system image.
 
@@ -26,14 +26,16 @@ must be changed to use the account's default shell.
 | Mode | Installation and updates | Configuration recovery |
 | --- | --- | --- |
 | Home Manager | Installs Nix if needed; pinned packages from `flake.lock` | Home Manager generations and backups of conflicting files |
-| Direct | Uses apt, dnf, or pacman; Starship's official installer if needed | Timestamped copies of changed configuration files |
+| Direct | Uses apt, dnf, pacman, or macOS Homebrew; Starship included | Timestamped copies of changed configuration files |
 
 Both modes provide CLI tools, a Powerline-style Starship theme, zoxide, fzf and optional Neovim.
-Home Manager also installs JetBrainsMono Nerd Font and enables fontconfig. Select
+Home Manager also installs JetBrainsMono Nerd Font (fontconfig on Linux,
+`~/Library/Fonts/Commander-os` on macOS). Select
 **JetBrainsMono Nerd Font** in your terminal preferences to render the separators
-and icons. Direct mode currently requires you to install a Nerd Font separately. Shell
+and icons. Direct mode installs the Nerd Font through Homebrew on macOS; Linux direct
+mode requires you to install a Nerd Font separately. Shell
 configuration follows your selected shell. Direct development mode installs Git;
-Lazygit is currently included only in Home Manager development mode. Direct mode
+Lazygit is included in Home Manager and macOS direct development mode. Direct mode
 preserves any existing Neovim configuration. Package versions follow the distro
 in direct mode. Home Manager keeps all three supported shell executables installed
 so declining a subsequent shell change does not remove your existing login shell.
@@ -77,15 +79,35 @@ store: never put secrets in Nix settings. Preserve `home.stateVersion` on update
 
 ## System prerequisites
 
-The bootstrap supports apt, dnf and pacman. Automatic Nix installation uses the
-[official Nix installer](https://nixos.org/download/) and requires systemd Linux
+The bootstrap supports apt, dnf and pacman on Linux, and Homebrew on macOS. Automatic Nix installation uses the
+[official Nix installer](https://nixos.org/download/) and supports macOS or systemd Linux
 with SELinux disabled. Existing incomplete Nix installations stop with guidance.
 Direct mode does not have that Nix requirement. On Arch, package installation uses
 the existing package database; do your normal full system update if it is stale.
 
-Direct mode uses the [official Starship installer](https://starship.rs/guide/)
+Linux direct mode uses the [official Starship installer](https://starship.rs/guide/)
 for a missing Starship executable and places it in `~/.local/bin`. Downloads and
 package installation happen only after the displayed installation plan is accepted.
+
+### macOS
+
+Run the same installer as your normal account. On **macOS only**, it checks for
+Homebrew (including `/opt/homebrew` on Apple Silicon and `/usr/local` on Intel).
+If missing, it offers the [official Homebrew installer](https://docs.brew.sh/Installation),
+which may request administrator access and Xcode Command Line Tools. Existing
+Homebrew installations are reused. `--no-install` never bootstraps Homebrew.
+Both installation modes use this check; Home Manager additionally needs Nix.
+
+Direct mode uses Homebrew for packages, Starship and JetBrainsMono Nerd Font.
+Bash uses current Homebrew Bash, and Zsh includes autosuggestions and syntax
+highlighting. Startup files restore Homebrew paths in new terminals. Choose
+**JetBrainsMono Nerd Font** in Terminal/iTerm preferences after installation.
+Use a macOS version supported by Homebrew; Windows is not supported.
+
+Uninstall/reinstall works through `./uninstall.sh`. Native package removal only
+offers packages recorded as newly installed by Commander-os. It leaves Homebrew,
+Nix, existing packages and recovery backups in place. Home Manager detachment
+keeps its Nix tools; it does not convert them into Homebrew packages.
 
 ## Updates and recovery
 
@@ -123,10 +145,13 @@ nix develop --command shellcheck uninstall.sh install.sh scripts/prerequisites.s
 nix flake check
 ```
 
-Targets: x86_64 and aarch64 Linux. Builds are tested on x86_64; clean-machine,
-ARM, and cross-distro activation testing remains in progress. macOS is unsupported.
+Targets: x86_64 and aarch64 Linux, plus Intel and Apple Silicon macOS.
+CI checks Linux x86_64 and both Mac architectures without activating a home.
+Clean-machine installation, graphical terminal behavior, Linux ARM and
+cross-distro activation still need manual testing. Intel Home Manager support
+is limited by the pinned Nixpkgs release; future Nixpkgs updates may drop it.
 The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash),
-with independently implemented installers and selectable shells. Automatic terminal font selection, direct-mode font installation, and desktop
+with independently implemented installers and selectable shells. Automatic terminal font selection, Linux direct-mode font installation, and desktop
 integration remain future work.
 
 ## Fish customizations
@@ -147,8 +172,9 @@ Set `COMMANDER_QUIET=1` before launching Fish to suppress the greeting and Fastf
 The notification plugin retains its MIT license in `modules/fish/conf.d/80-done.fish`.
 
 Home Manager installs the preview, archive, notification, Fastfetch and broot dependencies.
-Direct mode installs Fastfetch and the basic Fish helper dependencies; broot, PDF previews,
-7z extraction, and desktop notifications require their corresponding distro packages.
+Direct mode installs Fastfetch and the basic Fish helper dependencies. macOS
+also installs broot, PDF and 7z tools and uses system notifications. On Linux,
+those extra helpers require their corresponding distro packages.
 Personal Config Bible/backup commands, SSH-agent startup, music-player autostart,
 and Arch-only maintenance shortcuts have not been imported into this portable setup.
 

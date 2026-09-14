@@ -30,7 +30,7 @@ while (($#)); do
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
-[[ $(uname -s) == Linux ]] || { echo 'Only Linux is supported.' >&2; exit 1; }
+case $(uname -s) in Linux|Darwin) ;; *) echo 'Linux and macOS are supported.' >&2; exit 1 ;; esac
 ((EUID != 0)) || { echo 'Run as your normal user, without sudo.' >&2; exit 1; }
 if [[ -z "$backend" ]]; then
   if [[ -t 0 ]]; then
@@ -53,6 +53,13 @@ fi
 if [[ -n "$shell_choice" ]]; then
   case "$shell_choice" in bash|fish|zsh|keep) args+=(--shell "$shell_choice") ;; *) echo 'Invalid shell.' >&2; exit 1 ;; esac
 fi
+if [[ $(uname -s) == Darwin ]]; then
+  if "$install_missing"; then
+    ensure_homebrew
+  else
+    load_homebrew || { echo 'Homebrew is missing and --no-install was specified.' >&2; exit 1; }
+  fi
+fi
 if "$install_missing"; then
   ensure_packages python3
   if [[ "$backend" == home-manager ]] && ! "$init_only"; then
@@ -61,8 +68,8 @@ if "$install_missing"; then
   fi
 fi
 command -v python3 >/dev/null || { echo 'Python 3 is missing.' >&2; exit 1; }
+args+=(--backend "$backend")
 if [[ "$backend" == native ]]; then
-  args+=(--backend native)
   "$install_missing" || args+=(--no-install)
 fi
 exec python3 "$project_dir/scripts/bootstrap.py" "${args[@]}"

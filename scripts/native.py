@@ -12,9 +12,12 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import install_state
+import host
 
 
 def package_plan(machine, manager):
+    if manager == 'brew':
+        return brew_package_plan(machine)
     shell = machine.get('shell', 'fish' if machine['features']['fish'] else 'keep')
     tools = {'rg': 'ripgrep', 'fd': 'fd-find' if manager == 'apt-get' else 'fd-find' if manager == 'dnf' else 'fd',
              'bat': 'bat', 'eza': 'eza', 'jq': 'jq', 'fzf': 'fzf', 'zoxide': 'zoxide', 'curl': 'curl', 'tar': 'tar'}
@@ -34,6 +37,10 @@ def package_plan(machine, manager):
 
 
 def package_installed(manager, name):
+    if manager == 'brew':
+        kind = '--cask' if name == MAC_FONT else '--formula'
+        result = subprocess.run(['brew', 'list', kind, '--versions', name], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        return result.returncode == 0 and bool(result.stdout.strip())
     command = {'apt-get': ['dpkg-query', '-W', '-f=${Status}', name],
                'dnf': ['rpm', '-q', name], 'pacman': ['pacman', '-Q', name]}[manager]
     result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -75,6 +82,54 @@ def install_fastfetch_deb():
         subprocess.run(['sudo', 'apt-get', 'install', '-y', str(package)], check=True)
 
 
+MAC_FONT = 'font-jetbrains-mono-nerd-font'
+
+
+def brew_package_plan(machine):
+    shell = machine.get('shell', 'fish' if machine['features']['fish'] else 'keep')
+    tools = {'rg': 'ripgrep', 'fd': 'fd', 'bat': 'bat', 'eza': 'eza', 'jq': 'jq',
+             'fzf': 'fzf', 'zoxide': 'zoxide', 'curl': 'curl', 'gtar': 'gnu-tar', 'unxz': 'xz'}
+    required = set()
+    if shell != 'keep':
+        tools.update({'fastfetch': 'fastfetch', 'file': 'file', 'unzip': 'unzip', 'chafa': 'chafa',
+                      'git': 'git', 'greadlink': 'coreutils', 'broot': 'broot', 'pdftotext': 'poppler', '7zz': 'sevenzip'})
+        # Always use current Homebrew shells, especially instead of Apple's Bash 3.2.
+        required.update([shell, 'trash-cli'])
+        fonts = [Path.home() / 'Library/Fonts', Path('/Library/Fonts')]
+        if not any(list(directory.glob('*JetBrains*Mono*Nerd*.*tf')) for directory in fonts):
+            required.add(MAC_FONT)
+    if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
+        tools.update({'git': 'git', 'gmake': 'make', 'gawk': 'gawk'})
+    if shell == 'zsh':
+        required.update(['zsh-autosuggestions', 'zsh-syntax-highlighting'])
+    if shell != 'keep':
+        tools['starship'] = 'starship'
+    if machine['features']['neovim']:
+        tools['nvim'] = 'neovim'
+    if machine['features']['development']:
+        tools.update({'git': 'git', 'lazygit': 'lazygit'})
+    required.update(package for tool, package in tools.items() if not shutil.which(tool))
+    return sorted(name for name in required if not package_installed('brew', name))
+
+
+def brew_install(packages):
+    formulae = [name for name in packages if name != MAC_FONT]
+    if formulae:
+        subprocess.run(['brew', 'install', '--formula', *formulae], check=True)
+    if MAC_FONT in packages:
+        subprocess.run(['brew', 'install', '--cask', MAC_FONT], check=True)
+
+
+def brew_uninstall(packages):
+    # Never remove Homebrew itself or unrelated dependencies as a side effect.
+    env = dict(os.environ, HOMEBREW_NO_AUTOREMOVE='1', HOMEBREW_NO_INSTALL_CLEANUP='1')
+    formulae = [name for name in packages if name != MAC_FONT]
+    if formulae:
+        subprocess.run(['brew', 'uninstall', '--formula', *formulae], env=env, check=True)
+    if MAC_FONT in packages:
+        subprocess.run(['brew', 'uninstall', '--cask', MAC_FONT], env=env, check=True)
+
+
 def config_files(machine, home, config):
     shell = machine.get('shell', 'fish' if machine['features']['fish'] else 'keep')
     files = {}
@@ -109,6 +164,8 @@ alias gs='git status'
 command -v starship >/dev/null && eval "$(starship init {shell})"
 command -v zoxide >/dev/null && eval "$(zoxide init {shell})"
 '''
+        if host.is_macos() and shell == 'zsh':
+            files[config / f'commander-os/init.{shell}'] += 'command -v fzf >/dev/null && source <(fzf --zsh)\n'
         files[config / f'commander-os/init.{shell}'] += f'''for commander_fzf in /usr/share/doc/fzf/examples/key-bindings.{shell} /usr/share/fzf/key-bindings.{shell}; do
     if [ -r "$commander_fzf" ]; then . "$commander_fzf"; break; fi
 done
@@ -131,6 +188,24 @@ unset commander_fzf
             prefix = '. "${XDG_CONFIG_HOME:-$HOME/.config}/commander-os/shell/ble-start.sh"\n'
             suffix = '\n. "${XDG_CONFIG_HOME:-$HOME/.config}/commander-os/shell/ble-finish.sh"\n'
             files[init] = prefix + text + suffix
+        if host.is_macos():
+            files[config / 'commander-os/shell/macos.sh'] = (shell_source / 'macos.sh').read_text()
+            init = config / f'commander-os/init.{shell}'
+            files[init] = '. "${XDG_CONFIG_HOME:-$HOME/.config}/commander-os/shell/macos.sh"\n' + files[init]
+            if shell == 'zsh':
+                files[init] += '''
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'
+for commander_plugin in "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"; do
+    [[ -r "$commander_plugin" ]] && source "$commander_plugin"
+done
+unset commander_plugin
+'''
+            if shell == 'bash':
+                profile = home / '.bash_profile'
+                text = profile.read_text() if profile.exists() else ''
+                if '.bashrc' not in text:
+                    files[profile] = text + '\n# Commander-os Bash login integration\n[ -r "$HOME/.bashrc" ] && . "$HOME/.bashrc"\n'
         startup = home / ('.bashrc' if shell == 'bash' else '.zshrc')
         original = startup.read_text() if startup.exists() else ''
         marker = '# Commander-os shell integration'
@@ -145,6 +220,9 @@ unset commander_fzf
     if shell != 'keep':
         files[home / '.local/bin/fzf-preview'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-preview').read_text()
         files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
+    if host.is_macos() and shell == 'fish':
+        target = config / 'fish/conf.d/commander-os.fish'
+        files[target] = files[target].replace('    fish_user_key_bindings', '    if command -q fzf\n        fzf --fish | source\n    end\n    fish_user_key_bindings')
     if machine['features']['neovim']:
         # Do not replace an existing editor configuration in direct mode.
         init = config / 'nvim/init.lua'
@@ -179,9 +257,9 @@ def write_configs(files, receipt=None):
 def install_native(machine, *, apply, install_missing, configure_login):
     home = Path(machine['homeDirectory'])
     config = Path(os.environ.get('XDG_CONFIG_HOME', str(home / '.config')))
-    manager = next((name for name in ('apt-get', 'dnf', 'pacman') if shutil.which(name)), None)
+    manager = ('brew' if shutil.which('brew') else None) if host.is_macos() else next((name for name in ('apt-get', 'dnf', 'pacman') if shutil.which(name)), None)
     if not manager:
-        raise RuntimeError('Direct installation currently supports apt, dnf and pacman')
+        raise RuntimeError('Direct installation requires Homebrew on macOS, or apt, dnf or pacman on Linux')
     profiles = [Path(os.environ.get('XDG_STATE_HOME', str(home / '.local/state'))) / 'nix/profiles/home-manager',
                 Path('/nix/var/nix/profiles/per-user') / machine['username'] / 'home-manager']
     if any(p.exists() for p in profiles):
@@ -192,7 +270,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
     for target in files:
         if target.is_symlink() or str(target.resolve()).startswith('/nix/store/'):
             raise RuntimeError(f'Configuration is already managed: {target}')
-    starship = not shutil.which('starship') and not os.access(home / '.local/bin/starship', os.X_OK)
+    starship = manager != 'brew' and not shutil.which('starship') and not os.access(home / '.local/bin/starship', os.X_OK)
     shell = machine.get('shell', 'fish' if machine['features']['fish'] else 'keep')
     starship = starship and shell != 'keep'
     blesh = shell == 'bash' and not (home / '.local/share/blesh/ble.sh').is_file()
@@ -204,7 +282,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
         print('ble.sh will be built from https://github.com/akinomyoga/ble.sh into ~/.local/share/blesh.')
     if starship:
         print('Starship will be installed from https://starship.rs/install.sh into ~/.local/bin.')
-    if machine['features']['development']:
+    if machine['features']['development'] and manager != 'brew':
         print('Direct development mode installs Git. Lazygit is currently available in Home Manager mode only.')
     print('Configuration files:\n' + '\n'.join(str(p) for p in files))
     if not apply:
@@ -225,6 +303,8 @@ def install_native(machine, *, apply, install_missing, configure_login):
         if manager == 'apt-get':
             subprocess.run(['sudo', 'apt-get', 'update'], check=True)
             command = ['sudo', manager, 'install', '-y']
+        elif manager == 'brew':
+            command = ['brew', 'install', '--formula']
         elif manager == 'dnf':
             command = ['sudo', manager, 'install', '-y']
         else:
@@ -235,7 +315,10 @@ def install_native(machine, *, apply, install_missing, configure_login):
             fallback = manager == 'apt-get' and 'fastfetch' in packages and not apt_has_fastfetch()
             distro_packages = [p for p in packages if not (fallback and p == 'fastfetch')]
             if distro_packages:
-                subprocess.run(command + distro_packages, check=True)
+                if manager == 'brew':
+                    brew_install(distro_packages)
+                else:
+                    subprocess.run(command + distro_packages, check=True)
             if fallback:
                 install_fastfetch_deb()
         finally:
@@ -265,7 +348,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
             source = Path(directory) / 'ble.sh'
             subprocess.run(['git', 'clone', '--recursive', '--depth', '1', '--shallow-submodules',
                             'https://github.com/akinomyoga/ble.sh.git', str(source)], check=True)
-            subprocess.run(['make', '-C', str(source), 'install', f'PREFIX={home / ".local"}'], check=True)
+            subprocess.run(['gmake' if manager == 'brew' else 'make', '-C', str(source), 'install', f'PREFIX={home / ".local"}'], check=True)
         for path in ble_dir.rglob('*'):
             if path.is_file() and not path.is_symlink():
                 receipt['files'].setdefault(str(path), {'original': None, 'mode': None, 'installed': None})

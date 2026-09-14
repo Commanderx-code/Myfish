@@ -13,9 +13,9 @@ in
   # Preserve this value for existing installations when updating packages.
   home.stateVersion = "26.05";
   programs.home-manager.enable = true;
-  targets.genericLinux.enable = true;
+  targets.genericLinux.enable = pkgs.stdenv.isLinux;
   xdg.enable = true;
-  fonts.fontconfig.enable = true;
+  fonts.fontconfig.enable = pkgs.stdenv.isLinux;
   home.packages =
     with pkgs;
     [
@@ -46,11 +46,22 @@ in
         bzip2
         xz
         python3
-        libnotify
         git
       ]
     )
+    ++ lib.optionals (shell != "keep" && pkgs.stdenv.isLinux) [ pkgs.libnotify ]
+    ++ lib.optionals (shell != "keep" && pkgs.stdenv.isDarwin) [
+      pkgs.coreutils
+      pkgs.findutils
+    ]
     ++ lib.optionals (shell == "bash") [ pkgs.blesh ];
+  home.sessionPath = lib.optionals pkgs.stdenv.isDarwin [
+    (if pkgs.stdenv.hostPlatform.isAarch64 then "/opt/homebrew/bin" else "/usr/local/bin")
+  ];
+  home.file."Library/Fonts/Commander-os" = lib.mkIf pkgs.stdenv.isDarwin {
+    source = "${pkgs.nerd-fonts.jetbrains-mono}/share/fonts/truetype/NerdFonts/JetBrainsMono";
+    recursive = true;
+  };
   xdg.configFile = {
     "fish/conf.d" = lib.mkIf (shell == "fish") {
       source = ./fish/conf.d;

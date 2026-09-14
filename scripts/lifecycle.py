@@ -18,6 +18,7 @@ import time
 import bootstrap
 import install_state
 import native
+import host
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENTS = {'shell', 'neovim', 'development'}
@@ -94,7 +95,7 @@ def discover(config):
             sample['shell'] = shell
             sample['features']['neovim'] = False
             for path, text in native.config_files(sample, Path.home(), config_home).items():
-                if path.name not in ('.bashrc', '.zshrc') and path.is_file() and not path.is_symlink() and path.read_text() == text:
+                if path.name not in ('.bashrc', '.zshrc', '.bash_profile') and path.is_file() and not path.is_symlink() and path.read_text() == text:
                     receipt['files'][str(path)] = {'original': None, 'mode': None, 'installed': install_state.digest(path)}
         if not receipt['files']:
             raise RuntimeError('No recorded or recognizable Commander-os installation found.')
@@ -138,9 +139,9 @@ def recovery(files, receipt):
 
 def fallback_shell():
     previous = install_state.directory() / 'previous-shell.txt'
-    shell = previous.read_text().strip() if previous.exists() else '/bin/bash'
+    shell = previous.read_text().strip() if previous.exists() else host.fallback_shell()
     if not shell.startswith(('/bin/', '/usr/bin/')) or not os.access(shell, os.X_OK):
-        shell = '/bin/bash'
+        shell = host.fallback_shell()
     if not os.access(shell, os.X_OK) or shell not in Path('/etc/shells').read_text().splitlines():
         raise RuntimeError('Register a working system shell in /etc/shells before removal.')
     return shell
@@ -208,7 +209,7 @@ def remove_hm(receipt, machine, detach, apply):
         print(f'Restore earlier backup: {backup} -> {path}')
     if detach:
         print('Keep current tools, fonts and plugins as a fixed Nix snapshot. Nix stays installed.')
-        print('Home Manager stops managing configuration. This does not migrate packages to apt/dnf/pacman.')
+        print('Home Manager stops managing configuration. This does not migrate packages to apt/dnf/pacman/Homebrew.')
     if not apply:
         return False
     # Resolve the tools before removing a profile that may supply those tools.
@@ -269,6 +270,9 @@ def strip_startup(text):
     result = []
     index = 0
     while index < len(lines):
+        if lines[index].strip() == '# Commander-os Bash login integration' and index + 1 < len(lines) and lines[index + 1].rstrip('\n') == '[ -r "$HOME/.bashrc" ] && . "$HOME/.bashrc"':
+            index += 2
+            continue
         if lines[index].strip() == '# Commander-os shell integration' and index + 1 < len(lines):
             next_line = lines[index + 1]
             entries = [f'[ -r "${{XDG_CONFIG_HOME:-$HOME/.config}}/commander-os/init.{shell}" ] && . "${{XDG_CONFIG_HOME:-$HOME/.config}}/commander-os/init.{shell}"' for shell in ('bash', 'zsh')]
@@ -286,7 +290,7 @@ def remove_native(receipt, components, apply):
     files = {safe_path(p): record for p, record in receipt['files'].items() if component(p) in components}
     edits = {}
     if 'shell' in components and receipt.get('backend') != 'detached':
-        for name in ('.bashrc', '.zshrc'):
+        for name in ('.bashrc', '.zshrc', '.bash_profile'):
             path = safe_path(Path.home() / name)
             if path.is_file() and not path.is_symlink():
                 old = path.read_text()
@@ -302,7 +306,8 @@ def remove_native(receipt, components, apply):
         print(f'{path}: remove Commander-os startup entry; keep other content')
     eligible = receipt.get('packages', []) if components == COMPONENTS else [p for p in receipt.get('packages', []) if p == 'neovim' and 'neovim' in components]
     fallback = fallback_shell() if 'shell' in components else None
-    eligible = [p for p in eligible if p not in ('bash', Path(fallback).name if fallback else 'bash')]
+    if receipt.get('manager') != 'brew':
+        eligible = [p for p in eligible if p not in ('bash', Path(fallback).name if fallback else 'bash')]
     if any(not isinstance(p, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.:-]*', p) for p in eligible):
         raise ValueError('Invalid package name in installation record')
     print('Optional recorded package removal:', ', '.join(eligible) or 'none')
@@ -325,7 +330,11 @@ def remove_native(receipt, components, apply):
     backup = recovery([p for p in set(files) | set(edits) if p.is_file() and not p.is_symlink()], receipt)
     if fallback:
         set_login(fallback)
-    if selected:
+    if selected and receipt['manager'] == 'brew':
+        native.brew_uninstall(selected)
+        receipt['packages'] = [p for p in receipt['packages'] if p not in selected or native.package_installed('brew', p)]
+        install_state.save(receipt)
+    elif selected:
         command = {'apt-get': ['sudo', 'apt-get', 'remove'],
                    'dnf': ['sudo', 'dnf', '--setopt=clean_requirements_on_remove=False', 'remove'],
                    'pacman': ['sudo', 'pacman', '-R']}[receipt['manager']]
@@ -436,8 +445,8 @@ def main():
     parser.add_argument('--apply', action='store_true', help='ask for confirmation; explicit CLI actions default to preview')
     parser.add_argument('--config', type=Path, default=Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'commander-os/machine.json')
     args = parser.parse_args()
-    if sys.platform != 'linux' or os.geteuid() == 0:
-        raise ValueError('Run as your normal Linux user, without sudo.')
+    if sys.platform not in ('linux', 'darwin') or os.geteuid() == 0:
+        raise ValueError('Run as your normal Linux or macOS user, without sudo.')
     os.umask(0o077)
     if not args.action:
         if not sys.stdin.isatty():
@@ -454,7 +463,7 @@ def main():
         raise ValueError('Apply requires an interactive terminal for confirmation.')
     receipt, machine = discover(args.config)
     print('Detected:', receipt['backend'])
-    print('Scope: Commander-os for this account. Nix, personal files and recovery backups stay.')
+    print('Scope: Commander-os for this account. Nix, Homebrew, personal files and recovery backups stay.')
     if receipt.get('pending'):
         raise RuntimeError(f"A previous operation stopped partway through. Restore its generation first: {receipt.get('recovery')}/generation/activate")
     if args.action == 'status':

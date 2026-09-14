@@ -5,7 +5,11 @@ function psg
     end
 
     if command -q pgrep
-        pgrep -ai -- $argv[1]
+        if test (uname -s) = Darwin
+            pgrep -ifl -- $argv[1]
+        else
+            pgrep -ai -- $argv[1]
+        end
     else
         ps aux | rg -i -- $argv[1]
     end

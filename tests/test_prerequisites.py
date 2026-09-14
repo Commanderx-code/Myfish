@@ -7,7 +7,7 @@ HELPER = Path(__file__).resolve().parents[1] / 'scripts/prerequisites.sh'
 
 class PrerequisiteTests(unittest.TestCase):
     def run_shell(self, body):
-        return subprocess.run(['bash', '-eu', '-c', 'source "$1"\n' + body, 'test', str(HELPER)],
+        return subprocess.run(['bash', '-eu', '-c', 'uname() { echo Linux; }\nsource "$1"\n' + body, 'test', str(HELPER)],
                               text=True, capture_output=True)
 
     def test_existing_tools_skip_installation(self):

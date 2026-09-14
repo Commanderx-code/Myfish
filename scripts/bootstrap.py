@@ -14,6 +14,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import install_state
+import host
 
 ROOT = Path(__file__).resolve().parents[1]
 FEATURES = ('fish', 'neovim', 'development')
@@ -26,8 +27,8 @@ def validate(machine):
         raise ValueError('Invalid username')
     if not isinstance(machine['homeDirectory'], str) or not machine['homeDirectory'].startswith('/'):
         raise ValueError('homeDirectory must be an absolute path')
-    if machine['system'] not in ('x86_64-linux', 'aarch64-linux'):
-        raise ValueError('Supported architectures: x86_64-linux and aarch64-linux')
+    if machine['system'] not in ('x86_64-linux', 'aarch64-linux', 'x86_64-darwin', 'aarch64-darwin'):
+        raise ValueError('Supported systems: x86_64/aarch64 Linux and macOS')
     if not isinstance(machine['features'], dict) or set(machine['features']) != set(FEATURES):
         raise ValueError('features must contain fish, neovim, development')
     if any(type(v) is not bool for v in machine['features'].values()):
@@ -49,7 +50,7 @@ def default_machine():
     return validate({
         'username': pwd.getpwuid(os.getuid()).pw_name,
         'homeDirectory': str(Path.home()),
-        'system': platform.machine() + '-linux',
+        'system': host.system(),
         'features': {'fish': True, 'neovim': True, 'development': False},
     })
 
@@ -62,10 +63,10 @@ def configure_shell_login(machine, native=False):
     candidates = [Path(machine['homeDirectory']) / f'.nix-profile/bin/{shell}',
                   Path(os.environ.get('XDG_STATE_HOME', str(Path(machine['homeDirectory']) / '.local/state'))) / f'nix/profile/bin/{shell}']
     if native:
-        candidates = [Path('/usr/bin') / shell, Path('/bin') / shell]
+        candidates = host.native_shell_paths(shell)
     fish = next((p for p in candidates if os.access(p, os.X_OK)), None)
     if fish is None:
-        raise RuntimeError(f'Home Manager activated, but {shell} was not found in the Nix profile; login shell unchanged')
+        raise RuntimeError(f'{shell} was not found in the installed shell paths; login shell unchanged')
     subprocess.run([str(fish), *({'fish': ['--no-config'], 'bash': ['--noprofile', '--norc'], 'zsh': ['-f']}[shell]), '-c', 'exit 0'], check=True)
     account = pwd.getpwuid(os.getuid())
     if account.pw_shell == str(fish):
@@ -101,8 +102,8 @@ def main():
     parser.add_argument('--init', action='store_true', help='create settings only; do not build')
     parser.add_argument('--config', type=Path, default=Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'commander-os/machine.json')
     args = parser.parse_args()
-    if platform.system() != 'Linux' or os.geteuid() == 0:
-        raise ValueError('Run as your normal user on Linux, without sudo')
+    if platform.system() not in ('Linux', 'Darwin') or os.geteuid() == 0:
+        raise ValueError('Run as your normal user on Linux or macOS, without sudo')
     os.umask(0o077)
     if args.config.exists():
         machine = validate(json.loads(args.config.read_text()))

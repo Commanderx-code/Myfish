@@ -17,6 +17,9 @@ import install_state
 
 class LifecycleTests(unittest.TestCase):
     def setUp(self):
+        platform_patch = patch.object(lifecycle.host, 'is_macos', return_value=False)
+        platform_patch.start()
+        self.addCleanup(platform_patch.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.home = Path(self.temp.name)

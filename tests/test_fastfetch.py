@@ -14,6 +14,11 @@ import install_state
 
 
 class FastfetchTests(unittest.TestCase):
+    def setUp(self):
+        platform_patch = patch.object(native.host, 'is_macos', return_value=False)
+        platform_patch.start()
+        self.addCleanup(platform_patch.stop)
+
     def test_missing_fastfetch_is_planned_for_every_shell_and_manager(self):
         with tempfile.TemporaryDirectory() as home:
             for shell in ('fish', 'bash', 'zsh'):

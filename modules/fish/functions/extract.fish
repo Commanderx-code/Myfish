@@ -16,7 +16,11 @@ function extract --description 'Extract an archive into the current directory'
         case '*.xz'
             command unxz -- "$archive"
         case '*.7z' '*.rar'
-            command 7z x "$archive"
+            if command -q 7z
+                command 7z x "$archive"
+            else
+                command 7zz x "$archive"
+            end
         case '*'
             echo "Unsupported archive: $archive" >&2
             return 1
