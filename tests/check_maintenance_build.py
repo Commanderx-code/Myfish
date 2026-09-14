@@ -16,6 +16,12 @@ machine['system'] = lifecycle.host.system()
 if lifecycle.host.is_macos():
     machine['homeDirectory'] = '/Users/example'
 with tempfile.TemporaryDirectory(prefix='commander-build-check-') as temp:
+    # Fish is covered by flake check; build Bash too so ble.sh is checked on Macs.
+    bash_source = Path(temp) / 'bash-home'
+    bash_source.mkdir()
+    bootstrap.stage(bash_source, dict(machine, shell='bash'))
+    subprocess.run(['nix', '--extra-experimental-features', 'nix-command flakes', 'build',
+                    '--no-link', f'path:{bash_source}#homeConfigurations.commander.activationPackage'], check=True)
     source = Path(temp) / 'home'
     source.mkdir()
     bootstrap.stage(source, machine)

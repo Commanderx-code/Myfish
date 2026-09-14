@@ -120,3 +120,16 @@ ensure_packages python3 curl xz
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.splitlines(), ['brew', 'python', 'xz'])
+
+    def test_stock_bash_launcher_initializes_without_installing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / 'machine.json'
+            code = """
+uname() { echo Darwin; }
+brew() { return 0; }
+export -f uname brew
+/bin/bash "$1" --init --backend native --shell fish --no-install --config "$2"
+"""
+            result = subprocess.run(['/bin/bash', '-eu', '-c', code, 'test', str(ROOT / 'install.sh'), str(config)], text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(config.is_file())
