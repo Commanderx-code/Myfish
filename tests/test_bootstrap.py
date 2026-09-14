@@ -56,7 +56,8 @@ class BootstrapTests(unittest.TestCase):
              patch.object(bootstrap.shutil, 'which', return_value='/fixture/nix'), \
              patch.object(bootstrap.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, str(package))) as run, \
              patch('builtins.input', return_value=answer) as prompt, \
-             patch.object(bootstrap, 'configure_shell_login') as login:
+             patch.object(bootstrap, 'configure_shell_login') as login, \
+             patch.dict(os.environ, XDG_STATE_HOME=str(self.root / 'state')):
             self.assertEqual(bootstrap.main(), 0)
             self.assertEqual(config.read_bytes(), original)
             self.assertEqual(login.call_count, int(apply and answer == 'APPLY'))

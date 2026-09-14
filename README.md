@@ -113,13 +113,13 @@ repeat runs. To undo it, first restore the previous login shell. Restore desired
 backup files and remove the Commander-os startup block from `.bashrc` or `.zshrc`,
 or remove `~/.config/fish/conf.d/commander-os.fish`. Remove Commander-os's shell
 snippets under `~/.config/commander-os/` if no longer needed. Tools installed by
-your package manager remain installed; there is no automatic native uninstaller.
+your package manager can be reviewed with the maintenance menu below.
 
 ## Validation and scope
 
 ```sh
 nix develop --command python3 -B -m unittest discover -s tests -v
-nix develop --command shellcheck install.sh scripts/prerequisites.sh
+nix develop --command shellcheck uninstall.sh install.sh scripts/prerequisites.sh
 nix flake check
 ```
 
@@ -196,3 +196,77 @@ To switch your VM to Bash or Zsh:
 
 Accept the login-shell prompt, then log out and back in. Your current Fish
 configuration on your main computer is unaffected by updates to this repository.
+
+
+## Uninstall and reinstall
+
+Run `./uninstall.sh` for a prompted menu:
+
+1. Uninstall all Commander-os components.
+2. Reinstall your saved setup.
+3. Choose components to remove: shell customizations, Neovim, or development tools.
+4. Choose components to reinstall.
+5. Remove Home Manager while keeping your current tools and configuration.
+6. Show installation status.
+
+Run as your normal user. Each removal shows a plan, makes a recovery backup, and
+asks for an exact confirmation. It changes the login shell to a registered system
+shell before removing anything that could supply the current login shell.
+
+Explicit command-line actions default to a preview. Add `--apply` to build and
+confirm changes in an interactive terminal:
+
+```sh
+./uninstall.sh --action status
+./uninstall.sh --action remove
+./uninstall.sh --action remove --components neovim --apply
+./uninstall.sh --action reinstall --apply
+./uninstall.sh --action detach --apply
+```
+
+Use `--config PATH` for a custom machine settings file. Multiple components use
+commas, for example `--components neovim,development`. Reinstall reapplies the
+saved configuration and ensures tools are installed; it does not clear history
+or force-download working packages. Reinstalling selected features enables those
+features. Home Manager component changes rebuild the whole generation while
+keeping the other saved feature choices.
+
+**Remove Home Manager, keep my setup:** the script preserves the current packages,
+fonts and plugins in a separate Nix environment and turns managed configuration
+into editable files. It omits the Home Manager command from the new environment.
+Nix stays installed: these tools and configuration still use its store. This is a
+fixed snapshot, not a migration to apt, dnf or pacman; Home Manager will no longer
+update it. To switch back to an installer, choose reinstall. The script asks to
+remove the detached snapshot first and backs up your files. Detached packages are
+one environment, so selecting individual components requires returning to an
+installer. Unrelated Nix profile entries are preserved.
+
+**Uninstall all** covers Commander-os for this account. Home Manager's upstream
+uninstall module removes its entire active generation and generation history.
+The script requires a recorded or recognizable Commander-os generation, pins a
+recovery generation first, and restores earlier timestamped Commander-os file
+backups where available. It refuses an unrecognized Home Manager setup.
+
+Direct installations now record original configuration and which requested
+distro packages were absent before installation. Removal restores originals or
+removes unchanged installed files. Edited files are kept; unchanged Commander-os
+startup entries can be removed without discarding other Bash/Zsh startup content.
+You can choose which recorded packages to remove and review the package manager's
+transaction. It does not automatically remove dependencies. System Bash and the
+recovery shell are retained. Selective Neovim removal can remove recorded Neovim;
+shared distro tools are offered through full removal.
+
+Older direct installs lack ownership records. Matching Commander-os configuration
+can be removed, but unknown packages, existing Neovim configuration and old backup
+files are preserved. Reapplying an older direct install cannot reconstruct which
+packages were originally present.
+
+Nix itself, shared installation prerequisites, personal files, shell history,
+saved machine settings and recovery backups remain. Private installation records
+and backups live in `${XDG_STATE_HOME:-$HOME/.local/state}/commander-os`.
+Recovery roots intentionally prevent garbage collection from deleting saved
+Nix packages. If an operation stops midway, it prints the backup path and the
+saved `generation/activate` recovery command. After restoring, run the installer
+again to refresh the installation record. No removal is run against the developer's
+active account during automated checks; a complete desktop/logout cycle still
+needs testing in a disposable VM.

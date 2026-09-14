@@ -12,6 +12,9 @@ import sys
 import tempfile
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import install_state
+
 ROOT = Path(__file__).resolve().parents[1]
 FEATURES = ('fish', 'neovim', 'development')
 
@@ -153,6 +156,8 @@ def main():
             return 0
         env = dict(os.environ, HOME_MANAGER_BACKUP_EXT=f'commander-os-{time.time_ns()}')
         subprocess.run([str(package / 'activate')], env=env, check=True)
+        install_state.save({'version': 1, 'backend': 'home-manager', 'machine': machine,
+                            'generation': str(package), 'files': {}, 'packages': []})
         print('Home Manager activated successfully.')
         configure_shell_login(machine)
     return 0

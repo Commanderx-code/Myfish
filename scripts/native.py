@@ -6,6 +6,10 @@ import shutil
 import subprocess
 import tempfile
 import time
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import install_state
 
 
 def package_plan(machine, manager):
@@ -25,6 +29,13 @@ def package_plan(machine, manager):
     return sorted(set(package for tool, package in tools.items()
                       if (not shutil.which(tool) or (tool == shell and not any(os.access(Path(base) / shell, os.X_OK) for base in ('/usr/bin', '/bin')))) and not (tool == 'fd' and shutil.which('fdfind'))
                       and not (tool == 'bat' and shutil.which('batcat'))))
+
+
+def package_installed(manager, name):
+    command = {'apt-get': ['dpkg-query', '-W', '-f=${Status}', name],
+               'dnf': ['rpm', '-q', name], 'pacman': ['pacman', '-Q', name]}[manager]
+    result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return result.returncode == 0 and (manager != 'apt-get' or result.stdout == 'install ok installed')
 
 
 def config_files(machine, home, config):
@@ -99,17 +110,23 @@ unset commander_fzf
         files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
     if machine['features']['neovim']:
         # Do not replace an existing editor configuration in direct mode.
-        if not (config / 'nvim').exists():
+        init = config / 'nvim/init.lua'
+        record = install_state.load()['files'].get(str(init))
+        owned = record and (not init.exists() or (init.is_file() and not init.is_symlink() and install_state.digest(init) == record['installed']))
+        if not (config / 'nvim').exists() or owned:
             files[config / 'nvim/init.lua'] = 'vim.opt.number = true\nvim.opt.expandtab = true\nvim.opt.shiftwidth = 2\nvim.opt.tabstop = 2\n'
     return files
 
 
-def write_configs(files):
+def write_configs(files, receipt=None):
     suffix = f'.commander-os-{time.time_ns()}'
     for target in files:
         if target.is_symlink() or str(target.resolve()).startswith('/nix/store/'):
             raise RuntimeError(f'Refusing to replace managed/symlinked configuration: {target}. Use its existing manager.')
     for target, contents in files.items():
+        if receipt is not None:
+            install_state.capture(receipt, target, contents)
+            install_state.save(receipt)
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
             if target.read_text() == contents:
@@ -161,6 +178,10 @@ def install_native(machine, *, apply, install_missing, configure_login):
     if input('Type APPLY to install the listed tools and configuration: ') != 'APPLY':
         print('Cancelled.')
         return 0
+    receipt = install_state.load()
+    if receipt.get('backend') not in (None, 'native', 'removed'):
+        raise RuntimeError('Use uninstall.sh to remove the recorded Home Manager or detached setup first.')
+    receipt.update(backend='native', machine=machine, manager=manager)
     if packages:
         if manager == 'apt-get':
             subprocess.run(['sudo', 'apt-get', 'update'], check=True)
@@ -169,8 +190,19 @@ def install_native(machine, *, apply, install_missing, configure_login):
             command = ['sudo', manager, 'install', '-y']
         else:
             command = ['sudo', manager, '-S', '--needed', '--noconfirm']
-        subprocess.run(command + packages, check=True)
+        absent = [name for name in packages if not package_installed(manager, name)]
+        install_state.save(receipt)
+        try:
+            subprocess.run(command + packages, check=True)
+        finally:
+            # A package transaction can fail after installing some requested packages.
+            installed = [name for name in absent if package_installed(manager, name)]
+            receipt['packages'] = sorted(set(receipt['packages'] + installed))
+            install_state.save(receipt)
     if starship:
+        binary = home / '.local/bin/starship'
+        install_state.capture(receipt, binary)
+        install_state.save(receipt)
         with tempfile.TemporaryDirectory(prefix='commander-os-starship-') as directory:
             script = Path(directory) / 'install.sh'
             subprocess.run(['curl', '--fail', '--show-error', '--location', '--proto', '=https',
@@ -178,15 +210,27 @@ def install_native(machine, *, apply, install_missing, configure_login):
             binary_dir = home / '.local/bin'
             binary_dir.mkdir(parents=True, exist_ok=True)
             subprocess.run(['sh', str(script), '--yes', '--bin-dir', str(binary_dir)], check=True)
+        install_state.finished(receipt, binary)
     if blesh:
+        ble_dir = home / '.local/share/blesh'
+        for path in ble_dir.rglob('*'):
+            if path.is_file():
+                install_state.capture(receipt, path)
+        install_state.save(receipt)
         with tempfile.TemporaryDirectory(prefix='commander-os-blesh-') as directory:
             source = Path(directory) / 'ble.sh'
             subprocess.run(['git', 'clone', '--recursive', '--depth', '1', '--shallow-submodules',
                             'https://github.com/akinomyoga/ble.sh.git', str(source)], check=True)
             subprocess.run(['make', '-C', str(source), 'install', f'PREFIX={home / ".local"}'], check=True)
-    write_configs(files)
+        for path in ble_dir.rglob('*'):
+            if path.is_file() and not path.is_symlink():
+                receipt['files'].setdefault(str(path), {'original': None, 'mode': None, 'installed': None})
+                receipt['files'][str(path)]['installed'] = install_state.digest(path)
+        install_state.save(receipt)
+    write_configs(files, receipt)
     if shell != 'keep':
         (home / '.local/bin/fzf-preview').chmod(0o700)
+    install_state.save(receipt)
     configure_login(machine, native=True)
     print('Direct installation complete. Existing Neovim configuration was preserved if present.')
     return 0

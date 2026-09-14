@@ -11,7 +11,9 @@ jobs:
       - name: Test bootstrap safety
         run: |
           nix develop --command python3 -B -m unittest discover -s tests -v
-          bash -n install.sh scripts/prerequisites.sh
-          nix develop --command shellcheck install.sh scripts/prerequisites.sh modules/fzf-preview modules/shell/common.sh modules/shell/bash.sh modules/shell/ble-start.sh modules/shell/ble-finish.sh
+          bash -n uninstall.sh install.sh scripts/prerequisites.sh
+          nix develop --command shellcheck uninstall.sh install.sh scripts/prerequisites.sh modules/fzf-preview modules/shell/common.sh modules/shell/bash.sh modules/shell/ble-start.sh modules/shell/ble-finish.sh
       - name: Build example home without activation
         run: nix flake check
+      - name: Build uninstall and keep-tools plans without activation
+        run: nix develop --command python3 -B tests/check_maintenance_build.py
