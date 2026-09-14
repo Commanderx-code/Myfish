@@ -147,10 +147,18 @@ Set `COMMANDER_QUIET=1` before launching Fish to suppress the greeting and Fastf
 The notification plugin retains its MIT license in `modules/fish/conf.d/80-done.fish`.
 
 Home Manager installs the preview, archive, notification, Fastfetch and broot dependencies.
-Direct mode installs the basic Fish helper dependencies; Fastfetch, broot, PDF previews,
+Direct mode installs Fastfetch and the basic Fish helper dependencies; broot, PDF previews,
 7z extraction, and desktop notifications require their corresponding distro packages.
 Personal Config Bible/backup commands, SSH-agent startup, music-player autostart,
 and Arch-only maintenance shortcuts have not been imported into this portable setup.
+
+Native Fish, Bash and Zsh installs include Fastfetch when it is missing. On apt
+systems, the installer prefers the distro package after refreshing package lists.
+If no candidate exists, it downloads the official Fastfetch 2.68.1 `.deb` for amd64
+or arm64 and checks the release SHA-256 before installing it through apt. This
+fallback is announced before confirmation and recorded for later removal. See
+[Fastfetch's release](https://github.com/fastfetch-cli/fastfetch/releases/tag/2.68.1).
+Existing Fastfetch installations are reused; `--no-install` refuses missing tools.
 
 ## Bash and Zsh customizations
 
@@ -173,7 +181,7 @@ Bash/Zsh preserve normal Tab behavior and use fzf's available completion support
 Text-search pickers currently expect filenames without colons; file/directory
 pickers preserve spaces. `notify-run` preserves the command's exit status and
 requires `notify-send` for desktop notifications. Direct mode requires optional
-Fastfetch/broot/preview packages just as the Fish setup does; automatic Zsh
+broot/preview packages just as the Fish setup does; automatic Zsh
 highlighting and suggestions are currently provided by Home Manager mode.
 
 Bash loads ble.sh before Starship and attaches it after startup. Press **Right Arrow**

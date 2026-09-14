@@ -1,5 +1,7 @@
 """Direct installation without Nix or Home Manager."""
 import os
+import hashlib
+import re
 from pathlib import Path
 import pwd
 import shutil
@@ -19,7 +21,7 @@ def package_plan(machine, manager):
     if shell != 'keep':
         tools[shell] = shell
     if shell != 'keep':
-        tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git'})
+        tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git', 'fastfetch': 'fastfetch'})
     if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
         tools.update({'git': 'git', 'make': 'make', 'gawk': 'gawk'})
     if machine['features']['neovim']:
@@ -36,6 +38,41 @@ def package_installed(manager, name):
                'dnf': ['rpm', '-q', name], 'pacman': ['pacman', '-Q', name]}[manager]
     result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     return result.returncode == 0 and (manager != 'apt-get' or result.stdout == 'install ok installed')
+
+
+# Official release checksums: https://github.com/fastfetch-cli/fastfetch/releases/tag/2.68.1
+FASTFETCH_RELEASE = '2.68.1'
+FASTFETCH_DEBS = {
+    'amd64': ('amd64', '33b046a620b4f15fb6d0f9b3ef2491e6147ae15e40d699a6eef13555634a1b28'),
+    'arm64': ('aarch64', '0290a96bf225e0142a2e21238be9ef36c63c959c489f2f3ba6b4c72b5a767b9a'),
+}
+
+
+def apt_has_fastfetch():
+    result = subprocess.run(['apt-cache', 'policy', 'fastfetch'], check=True, text=True,
+                            stdout=subprocess.PIPE, env=dict(os.environ, LC_ALL='C'))
+    candidate = re.search(r'^\s*Candidate:\s*(\S+)', result.stdout, re.MULTILINE)
+    return bool(candidate and candidate.group(1) != '(none)')
+
+
+def install_fastfetch_deb():
+    architecture = subprocess.run(['dpkg', '--print-architecture'], check=True, text=True,
+                                  stdout=subprocess.PIPE).stdout.strip()
+    if architecture not in FASTFETCH_DEBS:
+        raise RuntimeError(f'Fastfetch upstream fallback does not support Debian architecture: {architecture}')
+    asset_arch, checksum = FASTFETCH_DEBS[architecture]
+    name = f'fastfetch-linux-{asset_arch}.deb'
+    url = f'https://github.com/fastfetch-cli/fastfetch/releases/download/{FASTFETCH_RELEASE}/{name}'
+    with tempfile.TemporaryDirectory(prefix='commander-fastfetch-') as directory:
+        package = Path(directory) / name
+        subprocess.run(['curl', '--fail', '--show-error', '--location', '--proto', '=https',
+                        '--proto-redir', '=https', url, '-o', str(package)], check=True)
+        if hashlib.sha256(package.read_bytes()).hexdigest() != checksum:
+            raise RuntimeError('Fastfetch package checksum mismatch; package was not installed')
+        # Allow apt's unprivileged download user to read this public package.
+        Path(directory).chmod(0o755)
+        package.chmod(0o644)
+        subprocess.run(['sudo', 'apt-get', 'install', '-y', str(package)], check=True)
 
 
 def config_files(machine, home, config):
@@ -161,6 +198,8 @@ def install_native(machine, *, apply, install_missing, configure_login):
     blesh = shell == 'bash' and not (home / '.local/share/blesh/ble.sh').is_file()
     print(f'Direct install via {manager}; Nix and Home Manager will not be installed.')
     print('Missing packages: ' + (', '.join(packages) or 'none'))
+    if manager == 'apt-get' and 'fastfetch' in packages:
+        print(f'Fastfetch uses apt when available; otherwise its official {FASTFETCH_RELEASE} .deb is downloaded and checksum-verified.')
     if blesh:
         print('ble.sh will be built from https://github.com/akinomyoga/ble.sh into ~/.local/share/blesh.')
     if starship:
@@ -193,7 +232,12 @@ def install_native(machine, *, apply, install_missing, configure_login):
         absent = [name for name in packages if not package_installed(manager, name)]
         install_state.save(receipt)
         try:
-            subprocess.run(command + packages, check=True)
+            fallback = manager == 'apt-get' and 'fastfetch' in packages and not apt_has_fastfetch()
+            distro_packages = [p for p in packages if not (fallback and p == 'fastfetch')]
+            if distro_packages:
+                subprocess.run(command + distro_packages, check=True)
+            if fallback:
+                install_fastfetch_deb()
         finally:
             # A package transaction can fail after installing some requested packages.
             installed = [name for name in absent if package_installed(manager, name)]
