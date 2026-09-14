@@ -261,3 +261,16 @@ class LifecycleTests(unittest.TestCase):
         self.receipt = install_state.load()
         self.remove()
         self.assertFalse(path.exists())
+
+
+    def test_nix_tool_preserves_multicall_name_through_profile_symlinks(self):
+        store = self.home / 'store/bin'
+        store.mkdir(parents=True)
+        (store / 'nix').write_text('fixture')
+        for name in ('nix-store', 'nix-env'):
+            (store / name).symlink_to('nix')
+        profile = self.home / 'profile'
+        profile.symlink_to(store.parent)
+        for name in ('nix', 'nix-store', 'nix-env'):
+            with self.subTest(name=name), patch.object(lifecycle.shutil, 'which', return_value=str(profile / 'bin' / name)):
+                self.assertEqual(lifecycle.nix_tool(name), str(store / name))

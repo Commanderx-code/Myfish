@@ -21,6 +21,11 @@ with tempfile.TemporaryDirectory(prefix='commander-build-check-') as temp:
                              f'path:{source}#homeConfigurations.commander.activationPackage'],
                             check=True, text=True, stdout=subprocess.PIPE)
     active = Path(result.stdout.strip())
+    recovery_root = Path(temp) / 'recovery-root'
+    subprocess.run([lifecycle.nix_tool('nix-store'), '--realise', str(active),
+                    '--add-root', str(recovery_root)], check=True, stdout=subprocess.DEVNULL)
+    assert recovery_root.resolve() == active
+    subprocess.run([lifecycle.nix_tool('nix-env'), '--version'], check=True, stdout=subprocess.DEVNULL)
     plan = Path(temp) / 'maintenance'
     plan.mkdir()
     removal, retained = lifecycle.build_hm(machine, active, True, plan)

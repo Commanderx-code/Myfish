@@ -158,7 +158,10 @@ def nix_tool(name):
     executable = shutil.which(name)
     if not executable:
         raise RuntimeError(f'{name} is required for Home Manager maintenance.')
-    return str(Path(executable).resolve())
+    path = Path(executable)
+    # Nix dispatches legacy commands by argv[0]. Resolve profile directories,
+    # but preserve the nix-store/nix-env basename instead of following it to nix.
+    return str(path.parent.resolve() / path.name)
 
 
 def modern_profile():
