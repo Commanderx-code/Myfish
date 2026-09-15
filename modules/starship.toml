@@ -36,14 +36,10 @@ format = "[$user ]($style)"
 error_symbol = " [×](bold red) "
 success_symbol = " [λ](green bold) "
 
-# Show the shell's final exit code, including Ctrl-C (130).
-# Do not render per-process pipeline brackets or emoji status symbols.
+# The character module shows a red × after an unsuccessful command.
+# Keep detailed exit codes and pipeline labels out of the prompt.
 [status]
-disabled = false
-format = '[\[exit $status\]]($style) '
-map_symbol = false
-pipestatus = false
-symbol = ""
+disabled = true
 
 [directory]
 style = "bg:#434C5E"

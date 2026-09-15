@@ -166,16 +166,12 @@ integration remain future work.
 
 ## Prompt status
 
-After an unsuccessful command, the shared Starship prompt shows a red character
-and a compact status such as `[exit 1]`, `[exit 127]` (command not found) or
-`[exit 130]` (interrupted). Successful commands have no status label. A search
-finding no matches can return 1 without indicating a broken installation.
-
-Only the final status supplied by the shell is shown; individual pipeline stages
-are not listed. Fish normally uses the final pipeline command's status, so
-`false | true` has no failure label. Shell options such as `pipefail` can change
-which status the shell supplies. The clock and package icons use the installed
-Nerd Font rather than emoji fallback fonts.
+The prompt shows a green `λ` after success or a red `×` after an unsuccessful
+command. It does not display exit-code labels or pipeline details. A search
+finding no matches can return a nonzero status without indicating a broken
+installation. The indicator follows the final status supplied by the shell.
+The clock and package icons use the installed Nerd Font rather than emoji
+fallback fonts.
 
 ## Greeting
 
