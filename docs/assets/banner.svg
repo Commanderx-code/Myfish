@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="240" viewBox="0 0 960 240" role="img" aria-labelledby="title desc">
+  <title id="title">Myfish</title>
+  <desc id="desc">Your shell. Your setup. Fish, Bash and Zsh for Linux and macOS.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#111b2b"/><stop offset="1" stop-color="#20384b"/></linearGradient>
+    <linearGradient id="accent"><stop stop-color="#86bbd8"/><stop offset="1" stop-color="#5eead4"/></linearGradient>
+  </defs>
+  <rect width="960" height="240" rx="20" fill="url(#bg)"/>
+  <path d="M720 0L860 120 720 240M815 0L955 120 815 240" fill="none" stroke="#86bbd8" stroke-opacity=".07" stroke-width="32"/>
+  <g fill="none" stroke="url(#accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M52 120C80 76 128 76 156 120C128 164 80 164 52 120ZM156 120L185 94V146Z"/>
+    <path d="M83 109L95 120 83 131M107 134H122"/>
+  </g>
+  <g font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif">
+    <text x="226" y="105" fill="#f0f6fc" font-size="58" font-weight="700" letter-spacing="-2">Myfish</text>
+    <text x="229" y="145" fill="#a9d3e6" font-size="23">Your shell. Your setup.</text>
+    <text x="229" y="187" fill="#a7b5c8" font-size="15" letter-spacing="2">FISH / BASH / ZSH</text>
+    <text x="740" y="207" fill="#a7b5c8" font-size="13" letter-spacing="1">LINUX + macOS</text>
+  </g>
+</svg>
