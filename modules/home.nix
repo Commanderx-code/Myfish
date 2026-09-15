@@ -63,6 +63,10 @@ in
     recursive = true;
   };
   xdg.configFile = {
+    "commander-os/greeting.txt" = lib.mkIf (shell != "keep") {
+      text =
+        lib.replaceStrings [ "{user}" ] [ machine.username ] (machine.greeting or "Hello, {user} ⚡") + "\n";
+    };
     "fastfetch/config.jsonc" = lib.mkIf (shell != "keep") {
       source = ./fastfetch.jsonc;
     };

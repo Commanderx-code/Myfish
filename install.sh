@@ -7,15 +7,21 @@ init_only=false
 install_missing=true
 backend=''
 shell_choice=''
+greeting_choice=false
 args=()
 while (($#)); do
   case "$1" in
     --help|-h)
       echo 'Usage: ./install.sh [--apply] [--init] [--backend home-manager|native]'
       echo '                    [--shell bash|fish|zsh|keep] [--config PATH] [--no-install]'
+      echo '                    [--greeting TEXT | --no-greeting | --default-greeting]'
       echo 'Interactive setup asks for installation mode and shell before installing anything.'
       echo 'Without --apply, native mode shows a plan; Home Manager mode builds a preview.'
       exit 0 ;;
+    --greeting)
+      (($# >= 2)) || { echo 'Missing greeting text.' >&2; exit 1; }
+      args+=("$1" "$2"); greeting_choice=true; shift 2 ;;
+    --no-greeting|--default-greeting) args+=("$1"); greeting_choice=true; shift ;;
     --init) init_only=true; args+=("$1"); shift ;;
     --apply) args+=("$1"); shift ;;
     --no-install) install_missing=false; shift ;;
@@ -52,6 +58,17 @@ if [[ -z "$shell_choice" && -t 0 ]]; then
 fi
 if [[ -n "$shell_choice" ]]; then
   case "$shell_choice" in bash|fish|zsh|keep) args+=(--shell "$shell_choice") ;; *) echo 'Invalid shell.' >&2; exit 1 ;; esac
+fi
+if ! "$greeting_choice" && [[ -t 0 && "$shell_choice" != keep ]]; then
+  echo 'Greeting: 1) Keep saved/default  2) Custom message  3) No greeting  4) Restore default'
+  read -r -p 'Choose [1-4, default 1]: ' answer
+  case "$answer" in
+    ''|1) ;;
+    2) read -r -p 'Greeting text ({user} inserts your username): ' greeting_text; args+=(--greeting "$greeting_text") ;;
+    3) args+=(--no-greeting) ;;
+    4) args+=(--default-greeting) ;;
+    *) echo 'Invalid greeting choice.' >&2; exit 1 ;;
+  esac
 fi
 if [[ $(uname -s) == Darwin ]]; then
   if "$install_missing"; then

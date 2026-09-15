@@ -21,7 +21,7 @@ FEATURES = ('fish', 'neovim', 'development')
 
 
 def validate(machine):
-    if set(machine) - {'username', 'homeDirectory', 'system', 'features', 'shell'} or not {'username', 'homeDirectory', 'system', 'features'} <= set(machine):
+    if set(machine) - {'username', 'homeDirectory', 'system', 'features', 'shell', 'greeting'} or not {'username', 'homeDirectory', 'system', 'features'} <= set(machine):
         raise ValueError('Machine settings must contain only username, homeDirectory, system, features')
     if not isinstance(machine['username'], str) or not machine['username'] or '/' in machine['username']:
         raise ValueError('Invalid username')
@@ -35,6 +35,9 @@ def validate(machine):
         raise ValueError('Feature values must be true or false')
     if machine.get('shell', 'fish' if machine['features']['fish'] else 'keep') not in ('bash', 'fish', 'zsh', 'keep'):
         raise ValueError('shell must be bash, fish, zsh or keep')
+    greeting = machine.get('greeting', 'Hello, {user} ⚡')
+    if not isinstance(greeting, str) or any(ord(c) < 32 or ord(c) == 127 for c in greeting):
+        raise ValueError('greeting must be a single line of text without control characters; use an empty string to disable it')
     return machine
 
 
@@ -98,6 +101,10 @@ def main():
     parser.add_argument('--backend', choices=['home-manager', 'native'], default='home-manager')
     parser.add_argument('--no-install', action='store_true')
     parser.add_argument('--shell', choices=['bash', 'fish', 'zsh', 'keep'])
+    greetings = parser.add_mutually_exclusive_group()
+    greetings.add_argument('--greeting', help='custom greeting; {user} inserts your username')
+    greetings.add_argument('--no-greeting', dest='greeting', action='store_const', const='')
+    greetings.add_argument('--default-greeting', dest='greeting', action='store_const', const='Hello, {user} ⚡')
     parser.add_argument('--apply', action='store_true', help='build, then ask before activating')
     parser.add_argument('--init', action='store_true', help='create settings only; do not build')
     parser.add_argument('--config', type=Path, default=Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'commander-os/machine.json')
@@ -116,6 +123,10 @@ def main():
     if args.shell:
         machine['shell'] = args.shell
         machine['features']['fish'] = args.shell == 'fish'
+        validate(machine)
+        args.config.write_text(json.dumps(machine, indent=2) + '\n')
+    if args.greeting is not None:
+        machine['greeting'] = args.greeting
         validate(machine)
         args.config.write_text(json.dumps(machine, indent=2) + '\n')
     print('Shell: ' + machine.get('shell', 'fish' if machine['features']['fish'] else 'keep'), flush=True)

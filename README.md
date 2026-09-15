@@ -157,6 +157,23 @@ The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTi
 with independently implemented installers and selectable shells. Automatic terminal font selection and desktop
 integration remain future work.
 
+## Greeting
+
+The installer offers a custom greeting, no greeting, or the saved/default choice.
+This works for Fish, Bash and Zsh with either backend. `{user}` inserts the
+account username; all other text is printed literally, never executed as shell code.
+The default is `Hello, {user} ⚡`. Turning off the greeting keeps Fastfetch enabled.
+
+```sh
+./install.sh --apply --greeting 'Welcome back, {user}!'
+./install.sh --apply --no-greeting
+./install.sh --apply --default-greeting
+```
+
+The choice is saved as `greeting` in your machine settings and survives reinstalls.
+An empty string disables it. `COMMANDER_QUIET=1` still suppresses both the greeting
+and Fastfetch for an individual shell session.
+
 ## Fish customizations
 
 Fish now includes the portable customizations from the personal dotfiles:

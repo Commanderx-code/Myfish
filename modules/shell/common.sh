@@ -131,6 +131,13 @@ export FZF_ALT_C_COMMAND="$_commander_finder --type d --hidden --exclude .git --
 export FZF_DEFAULT_OPTS='--layout=reverse --border --ansi --preview-window=right,60%,nowrap --bind=ctrl-/:toggle-preview'
 unset _commander_finder
 if [ -z "${COMMANDER_QUIET+x}" ]; then
-  printf 'Hello, %s ⚡\n' "$(whoami)"
+  _commander_greeting_file="${XDG_CONFIG_HOME:-$HOME/.config}/commander-os/greeting.txt"
+  if [ -f "$_commander_greeting_file" ]; then
+    _commander_greeting=$(command cat -- "$_commander_greeting_file")
+    [ -z "$_commander_greeting" ] || printf '%s\n' "$_commander_greeting"
+  else
+    printf 'Hello, %s ⚡\n' "$(whoami)"
+  fi
+  unset _commander_greeting_file _commander_greeting
   if command -v fastfetch >/dev/null 2>&1; then fastfetch; fi
 fi

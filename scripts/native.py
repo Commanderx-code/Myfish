@@ -227,6 +227,7 @@ unset commander_plugin
     if shell != 'keep':
         files[home / '.local/bin/fzf-preview'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-preview').read_text()
         files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
+        files[config / 'commander-os/greeting.txt'] = machine.get('greeting', 'Hello, {user} ⚡').replace('{user}', machine['username']) + '\n'
         files[config / 'fastfetch/config.jsonc'] = (Path(__file__).resolve().parents[1] / 'modules/fastfetch.jsonc').read_text()
     if host.is_macos() and shell == 'fish':
         target = config / 'fish/conf.d/commander-os.fish'
