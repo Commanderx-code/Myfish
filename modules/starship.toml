@@ -18,7 +18,7 @@ $docker_context\
 [](fg:#5E81AC bg:#33658A)\
 $time\
 [](fg:#33658A)
-[╰─⮞](bg:#3B4252 fg:#ECEFF4)\
+[╰─>](bg:#3B4252 fg:#ECEFF4)\
 $character\
 $status\
 $package
@@ -33,15 +33,17 @@ style_root = "bg:#3B4252 fg:#BF616A"
 format = "[$user ]($style)"
 
 [character]
-error_symbol = " [×](bold red)"
-success_symbol = " [λ](green bold)"
+error_symbol = " [×](bold red) "
+success_symbol = " [λ](green bold) "
 
+# Show the shell's final exit code, including Ctrl-C (130).
+# Do not render per-process pipeline brackets or emoji status symbols.
 [status]
 disabled = false
-format = '[\[$symbol$status_common_meaning$status_signal_name$status_maybe_int\]]($style)'
-map_symbol = true
-pipestatus = true
-symbol = "●"
+format = '[\[exit $status\]]($style) '
+map_symbol = false
+pipestatus = false
+symbol = ""
 
 [directory]
 style = "bg:#434C5E"
@@ -61,7 +63,7 @@ format = "[ in $path ]($style)[$read_only]($read_only_style)"
 
 [time]
 disabled = false
-time_format = "🕙 %I:%M %p"
+time_format = " %I:%M %p"
 style = "bg:#33658A"
 format = "[ $time ]($style)"
 
@@ -74,15 +76,15 @@ format = "[ $symbol$branch ]($style)"
 style = "bg:#3B4252"
 format = "[$all_status$ahead_behind ]($style)"
 conflicted = ""
-ahead = "⇡"
-behind = "⇣"
-diverged = "⇕"
+ahead = "↑"
+behind = "↓"
+diverged = "↕"
 untracked = "?"
 stashed = ""
 modified = "!"
 staged = "+"
 renamed = "»"
-deleted = "✘"
+deleted = "×"
 
 [c]
 symbol = " "
@@ -115,4 +117,4 @@ style = "bg:#06969A"
 format = "[ $symbol$context ]($style) "
 
 [package]
-symbol = " "
+symbol = "󰏗 "

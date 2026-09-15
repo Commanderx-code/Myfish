@@ -43,6 +43,7 @@
             fish
             zsh
             shellcheck
+            starship
           ];
         };
       });

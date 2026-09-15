@@ -164,6 +164,19 @@ The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTi
 with independently implemented installers and selectable shells. Automatic terminal font selection and desktop
 integration remain future work.
 
+## Prompt status
+
+After an unsuccessful command, the shared Starship prompt shows a red character
+and a compact status such as `[exit 1]`, `[exit 127]` (command not found) or
+`[exit 130]` (interrupted). Successful commands have no status label. A search
+finding no matches can return 1 without indicating a broken installation.
+
+Only the final status supplied by the shell is shown; individual pipeline stages
+are not listed. Fish normally uses the final pipeline command's status, so
+`false | true` has no failure label. Shell options such as `pipefail` can change
+which status the shell supplies. The clock and package icons use the installed
+Nerd Font rather than emoji fallback fonts.
+
 ## Greeting
 
 The installer offers a custom greeting, no greeting, or the saved/default choice.
