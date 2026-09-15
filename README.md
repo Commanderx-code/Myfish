@@ -178,6 +178,12 @@ those extra helpers require their corresponding distro packages.
 Personal Config Bible/backup commands, SSH-agent startup, music-player autostart,
 and Arch-only maintenance shortcuts have not been imported into this portable setup.
 
+Both installation modes use the [Chris Titus Tech Fastfetch layout](https://github.com/ChrisTitusTech/mybash/blob/main/config.jsonc)
+at `~/.config/fastfetch/config.jsonc` (respecting `XDG_CONFIG_HOME` in native mode).
+It includes grouped OS, desktop, hardware and audio information. The bundled
+configuration retains its MIT license. Existing configurations use the normal
+backup/recovery flow; selecting “keep current shell” leaves Fastfetch configuration alone.
+
 Native Fish, Bash and Zsh installs include Fastfetch when it is missing. On apt
 systems, the installer prefers the distro package after refreshing package lists.
 If no candidate exists, it downloads the official Fastfetch 2.68.1 `.deb` for amd64

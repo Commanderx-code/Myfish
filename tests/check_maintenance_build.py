@@ -39,6 +39,10 @@ with tempfile.TemporaryDirectory(prefix='commander-build-check-') as temp:
     plan.mkdir()
     removal, retained = lifecycle.build_hm(machine, active, True, plan)
     assert (removal / 'activate').is_file()
+    fastfetch_config = active / 'home-files/.config/fastfetch/config.jsonc'
+    assert fastfetch_config.read_bytes() == (ROOT / 'modules/fastfetch.jsonc').read_bytes()
+    subprocess.run([str(retained / 'bin/fastfetch'), '--config', str(fastfetch_config), '--pipe'],
+                   check=True, stdout=subprocess.DEVNULL)
     expected = {p.name for p in (active / 'home-path/bin').iterdir()} - {'home-manager'}
     actual = {p.name for p in (retained / 'bin').iterdir()}
     assert actual == expected, f'Missing: {expected - actual}; unexpected: {actual - expected}'

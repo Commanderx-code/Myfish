@@ -63,6 +63,9 @@ in
     recursive = true;
   };
   xdg.configFile = {
+    "fastfetch/config.jsonc" = lib.mkIf (shell != "keep") {
+      source = ./fastfetch.jsonc;
+    };
     "fish/conf.d" = lib.mkIf (shell == "fish") {
       source = ./fish/conf.d;
       recursive = true;
