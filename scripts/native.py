@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import install_state
 import host
+import fonts
 
 
 def package_plan(machine, manager):
@@ -24,7 +25,7 @@ def package_plan(machine, manager):
     if shell != 'keep':
         tools[shell] = shell
     if shell != 'keep':
-        tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git', 'fastfetch': 'fastfetch'})
+        tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git', 'fastfetch': 'fastfetch', 'fc-list': 'fontconfig', 'fc-cache': 'fontconfig'})
     if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
         tools.update({'git': 'git', 'make': 'make', 'gawk': 'gawk'})
     if machine['features']['neovim']:
@@ -280,11 +281,14 @@ def install_native(machine, *, apply, install_missing, configure_login):
     starship = manager != 'brew' and not shutil.which('starship') and not os.access(home / '.local/bin/starship', os.X_OK)
     shell = machine.get('shell', 'fish' if machine['features']['fish'] else 'keep')
     starship = starship and shell != 'keep'
+    font_missing = manager != 'brew' and shell != 'keep' and fonts.needed()
     blesh = shell == 'bash' and not (home / '.local/share/blesh/ble.sh').is_file()
     print(f'Direct install via {manager}; Nix and Home Manager will not be installed.')
     print('Missing packages: ' + (', '.join(packages) or 'none'))
     if manager == 'apt-get' and 'fastfetch' in packages:
         print(f'Fastfetch uses apt when available; otherwise its official {FASTFETCH_RELEASE} .deb is downloaded and checksum-verified.')
+    if font_missing:
+        print(f'JetBrainsMono Nerd Font {fonts.VERSION} will be downloaded, checksum-verified and installed in your user fonts directory.')
     if blesh:
         print('ble.sh will be built from https://github.com/akinomyoga/ble.sh into ~/.local/share/blesh.')
     if starship:
@@ -297,7 +301,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
         return 0
     if home != Path.home() or machine['username'] != pwd.getpwuid(os.getuid()).pw_name:
         raise ValueError('Activation settings must match the current user and home directory')
-    if not install_missing and (packages or starship or blesh):
+    if not install_missing and (packages or starship or blesh or font_missing):
         raise RuntimeError('Dependencies are missing and --no-install was specified')
     if input('Type APPLY to install the listed tools and configuration: ') != 'APPLY':
         print('Cancelled.')
@@ -333,6 +337,8 @@ def install_native(machine, *, apply, install_missing, configure_login):
             installed = [name for name in absent if package_installed(manager, name)]
             receipt['packages'] = sorted(set(receipt['packages'] + installed))
             install_state.save(receipt)
+    if font_missing:
+        fonts.install(home, receipt)
     if starship:
         binary = home / '.local/bin/starship'
         install_state.capture(receipt, binary)
@@ -366,5 +372,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
         (home / '.local/bin/fzf-preview').chmod(0o700)
     install_state.save(receipt)
     configure_login(machine, native=True)
+    if shell != 'keep':
+        print('Select JetBrainsMono Nerd Font Mono in your terminal profile, then close all terminal windows and reopen them.')
     print('Direct installation complete. Existing Neovim configuration was preserved if present.')
     return 0

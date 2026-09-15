@@ -32,8 +32,11 @@ Both modes provide CLI tools, a Powerline-style Starship theme, zoxide, fzf and 
 Home Manager also installs JetBrainsMono Nerd Font (fontconfig on Linux,
 `~/Library/Fonts/Commander-os` on macOS). Select
 **JetBrainsMono Nerd Font** in your terminal preferences to render the separators
-and icons. Direct mode installs the Nerd Font through Homebrew on macOS; Linux direct
-mode requires you to install a Nerd Font separately. Shell
+and icons. Direct mode installs the Nerd Font through Homebrew on macOS or a checksum-verified
+upstream download on Linux. Linux installs the four Mono styles and their license
+in `$XDG_DATA_HOME/fonts/commander-os` (default `~/.local/share/fonts/commander-os`),
+refreshes fontconfig, and records those files for removal. Existing registered
+JetBrainsMono Nerd Font Mono installations are reused. Shell
 configuration follows your selected shell. Direct development mode installs Git;
 Lazygit is included in Home Manager and macOS direct development mode. Direct mode
 preserves any existing Neovim configuration. Package versions follow the distro
@@ -151,7 +154,7 @@ Clean-machine installation, graphical terminal behavior, Linux ARM and
 cross-distro activation still need manual testing. Intel Home Manager support
 is limited by the pinned Nixpkgs release; future Nixpkgs updates may drop it.
 The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash),
-with independently implemented installers and selectable shells. Automatic terminal font selection, Linux direct-mode font installation, and desktop
+with independently implemented installers and selectable shells. Automatic terminal font selection and desktop
 integration remain future work.
 
 ## Fish customizations

@@ -15,6 +15,9 @@ spec.loader.exec_module(native)
 
 class NativeTests(unittest.TestCase):
     def setUp(self):
+        font_patch = patch('fonts.needed', return_value=False)
+        font_patch.start()
+        self.addCleanup(font_patch.stop)
         platform_patch = patch.object(native.host, 'is_macos', return_value=False)
         platform_patch.start()
         self.addCleanup(platform_patch.stop)

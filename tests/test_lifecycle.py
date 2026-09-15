@@ -17,6 +17,9 @@ import install_state
 
 class LifecycleTests(unittest.TestCase):
     def setUp(self):
+        font_patch = patch('fonts.needed', return_value=False)
+        font_patch.start()
+        self.addCleanup(font_patch.stop)
         platform_patch = patch.object(lifecycle.host, 'is_macos', return_value=False)
         platform_patch.start()
         self.addCleanup(platform_patch.stop)
