@@ -40,7 +40,7 @@ case $(uname -s) in Linux|Darwin) ;; *) echo 'Linux and macOS are supported.' >&
 ((EUID != 0)) || { echo 'Run as your normal user, without sudo.' >&2; exit 1; }
 if [[ -z "$backend" ]]; then
   if [[ -t 0 ]]; then
-    echo 'How should Commander-os manage your setup?'
+    echo 'How should Myfish manage your setup?'
     echo '  1) Home Manager — install Nix if needed; pinned packages and generations'
     echo '  2) Direct install — distro packages and backed-up configuration files'
     read -r -p 'Choose [1/2, default 1]: ' answer

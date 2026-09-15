@@ -1,5 +1,5 @@
 {
-  description = "Commander-os: a portable Linux and macOS home environment";
+  description = "Myfish: a portable Linux and macOS home environment";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     home-manager = {

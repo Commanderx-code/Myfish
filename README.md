@@ -1,14 +1,19 @@
-# Commander-os
+# Myfish
 
 A Linux and macOS terminal environment with a guided installer. Choose **Home Manager** or
 **direct installation**, then choose **Fish, Bash, Zsh, or keep your current shell**.
 This is a starter project, not an operating system image.
 
+Formerly **Commander-os**. Existing settings directories, startup markers,
+environment variables and recovery records keep their original names so installed
+setups continue to update and uninstall correctly. Existing checkout folders can
+keep their current name; new clones use `Myfish`.
+
 ## Install
 
 ```sh
-git clone https://github.com/Commanderx-code/Commander-os.git
-cd Commander-os
+git clone https://github.com/Commanderx-code/Myfish.git
+cd Myfish
 ./install.sh --apply
 ```
 
