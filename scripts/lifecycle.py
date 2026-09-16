@@ -50,7 +50,7 @@ def shell_choice(machine):
 
 def component(path):
     relative = Path(path).relative_to(Path.home())
-    if 'nvim' in relative.parts:
+    if 'nvim' in relative.parts or Path(path).name == 'tree-sitter':
         return 'neovim'
     if 'lazygit' in relative.parts or Path(path).name == '.gitconfig':
         return 'development'
@@ -364,6 +364,15 @@ def remove_native(receipt, components, apply):
             path.chmod(record['mode'])
         receipt['files'].pop(str(path), None)
         install_state.save(receipt)
+    # Remove only empty directories left by multi-file editor/tool installations.
+    parents = {parent for path in files for parent in path.parents
+               if parent.is_relative_to(Path.home()) and 'nvim' in parent.relative_to(Path.home()).parts}
+    for parent in sorted(parents, key=lambda p: len(p.parts), reverse=True):
+        if not parent.is_symlink():
+            try:
+                parent.rmdir()
+            except OSError:
+                pass
     for path, text in edits.items():
         path.write_text(text)
         receipt['files'].pop(str(path), None)

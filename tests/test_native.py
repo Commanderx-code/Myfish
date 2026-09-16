@@ -15,6 +15,10 @@ spec.loader.exec_module(native)
 
 class NativeTests(unittest.TestCase):
     def setUp(self):
+        for target, value in [('editor.needs_tools', False), ('editor.ensure_tools', None)]:
+            patcher = patch(target, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
         font_patch = patch('fonts.needed', return_value=False)
         font_patch.start()
         self.addCleanup(font_patch.stop)

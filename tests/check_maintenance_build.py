@@ -1,5 +1,6 @@
 """Build maintenance environments and check retained tools without activation."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -39,6 +40,17 @@ with tempfile.TemporaryDirectory(prefix='commander-build-check-') as temp:
     plan.mkdir()
     removal, retained = lifecycle.build_hm(machine, active, True, plan)
     assert (removal / 'activate').is_file()
+    assert 'require("config.lazy")' in (active / 'home-files/.config/nvim/init.lua').read_text()
+    assert (active / 'home-files/.config/nvim/lua/config/lazy.lua').read_bytes() == (ROOT / 'modules/neovim/lua/config/lazy.lua').read_bytes()
+    editor_home = Path(temp) / 'editor-check'
+    editor_home.mkdir()
+    editor_env = dict(os.environ, HOME=str(editor_home), XDG_CONFIG_HOME=str(editor_home / 'config'),
+                      XDG_DATA_HOME=str(editor_home / 'data'), XDG_STATE_HOME=str(editor_home / 'state'),
+                      XDG_CACHE_HOME=str(editor_home / 'cache'), MYFISH_STARTER=str(ROOT / 'modules/neovim'))
+    check_lua = "lua assert(jit); for _, tool in ipairs({'git', 'curl', 'tree-sitter', 'cc'}) do assert(vim.fn.executable(tool) == 1, tool) end; for _, file in ipairs(vim.fn.glob(vim.env.MYFISH_STARTER .. '/**/*.lua', false, true)) do assert(loadfile(file)) end"
+    subprocess.run([str(retained / 'bin/nvim'), '--headless', '-u', 'NONE', '-i', 'NONE',
+                    '-c', check_lua, '-c', 'qa'], check=True, env=editor_env)
+
     fastfetch_config = active / 'home-files/.config/fastfetch/config.jsonc'
     assert fastfetch_config.read_bytes() == (ROOT / 'modules/fastfetch.jsonc').read_bytes()
     subprocess.run([str(retained / 'bin/fastfetch'), '--config', str(fastfetch_config), '--pipe'],

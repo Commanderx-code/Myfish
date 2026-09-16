@@ -63,6 +63,13 @@ in
     recursive = true;
   };
   xdg.configFile = {
+    "nvim/lua" = lib.mkIf machine.features.neovim {
+      source = ./neovim/lua;
+      recursive = true;
+    };
+    "nvim/LICENSE" = lib.mkIf machine.features.neovim { source = ./neovim/LICENSE; };
+    "nvim/UPSTREAM.md" = lib.mkIf machine.features.neovim { source = ./neovim/UPSTREAM.md; };
+    "nvim/stylua.toml" = lib.mkIf machine.features.neovim { source = ./neovim/stylua.toml; };
     "commander-os/greeting.txt" = lib.mkIf (shell != "keep") {
       text =
         lib.replaceStrings [ "{user}" ] [ machine.username ] (machine.greeting or "Hello, {user} ⚡") + "\n";
@@ -132,17 +139,16 @@ in
   };
   programs.neovim = lib.mkIf machine.features.neovim {
     enable = true;
-    initLua = ''
-      vim.opt.number = true
-      vim.opt.relativenumber = true
-      vim.opt.expandtab = true
-      vim.opt.shiftwidth = 2
-      vim.opt.tabstop = 2
-      vim.opt.ignorecase = true
-      vim.opt.smartcase = true
-      vim.opt.termguicolors = true
-      vim.g.mapleader = " "
-    '';
+    extraPackages = with pkgs; [
+      git
+      curl
+      unzip
+      gnutar
+      gzip
+      tree-sitter
+      stdenv.cc
+    ];
+    initLua = builtins.readFile ./neovim/init.lua;
   };
   programs.git.enable = machine.features.development;
   programs.lazygit.enable = machine.features.development;
