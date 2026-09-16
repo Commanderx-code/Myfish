@@ -119,6 +119,42 @@ offers packages recorded as newly installed by Commander-os. It leaves Homebrew,
 Nix, existing packages and recovery backups in place. Home Manager detachment
 keeps its Nix tools; it does not convert them into Homebrew packages.
 
+## Neovim and LazyVim
+
+`features.neovim = true` now selects the unmodified official LazyVim starter,
+vended in `modules/neovim` with its upstream revision and Apache 2.0 license.
+Run `nvim` to download plugins on first launch, then `:LazyHealth` for diagnostics.
+Language servers and formatters may need additional language-specific runtimes;
+LazyVim and Mason manage those separately from the Myfish installer.
+
+Home Manager supplies Neovim, Git, curl, archive utilities, a C compiler and the
+Tree-sitter CLI. It manages starter files individually so `lazy-lock.json` and
+`lazyvim.json` can still be created in your configuration directory. Edit managed
+Lua files in the repository, or add your own separate plugin files.
+
+Native mode installs the compiler and download dependencies through the platform
+package manager. On Linux, if Neovim is older than 0.11.2 or Tree-sitter is older
+than 0.26.1, it downloads verified official Neovim 0.11.6 / Tree-sitter 0.26.1 binaries
+for x86_64 or aarch64. Downloads are announced before confirmation and prohibited
+by `--no-install`. Neovim's files live under `~/.local/share/commander-os/nvim`;
+launchers live in `~/.local/bin`. The selected shell includes this directory in
+PATH. If keeping your current shell, add it to PATH or use `~/.local/bin/nvim`.
+Existing customized launchers are never overwritten. On macOS, Homebrew installs
+the tools; outdated existing formulae produce upgrade instructions before the
+starter is applied. The editor executable is checked before config files are written.
+
+Native migration replaces the old minimal Myfish config only if its tracked files
+are unchanged. An unowned or customized Neovim configuration is preserved. To adopt
+LazyVim in that case, back up and move your existing `~/.config/nvim` directory first,
+then rerun the installer. Existing Neovim plugin data is not deleted automatically;
+consult [LazyVim's installation guide](https://www.lazyvim.org/installation) if an
+older plugin setup conflicts. Keep your existing config until the new setup works.
+
+Removal tracks the starter and user-local tool files as the Neovim component.
+Edited files, plugin data, generated lockfiles, language servers and recovery
+backups remain. A directory containing preserved custom files is still treated
+as your configuration on subsequent native installs.
+
 ## Updates and recovery
 
 ```sh

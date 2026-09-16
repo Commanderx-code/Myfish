@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import install_state
 import host
 import fonts
+import editor
 
 
 def package_plan(machine, manager):
@@ -29,7 +30,7 @@ def package_plan(machine, manager):
     if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
         tools.update({'git': 'git', 'make': 'make', 'gawk': 'gawk'})
     if machine['features']['neovim']:
-        tools['nvim'] = 'neovim'
+        tools.update({'nvim': 'neovim', 'git': 'git', 'cc': 'gcc', 'make': 'make', 'unzip': 'unzip', 'fc-list': 'fontconfig', 'fc-cache': 'fontconfig'})
     if machine['features']['development']:
         tools['git'] = 'git'
     return sorted(set(package for tool, package in tools.items()
@@ -99,6 +100,8 @@ def brew_package_plan(machine):
         fonts = [Path.home() / 'Library/Fonts', Path('/Library/Fonts')]
         if not any(list(directory.glob('*JetBrains*Mono*Nerd*.*tf')) for directory in fonts):
             required.add(MAC_FONT)
+    if machine['features']['neovim'] and shell == 'keep':
+        required.add(MAC_FONT)
     if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
         tools.update({'git': 'git', 'gmake': 'make', 'gawk': 'gawk'})
     if shell == 'zsh':
@@ -106,7 +109,7 @@ def brew_package_plan(machine):
     if shell != 'keep':
         tools['starship'] = 'starship'
     if machine['features']['neovim']:
-        tools['nvim'] = 'neovim'
+        tools.update({'nvim': 'neovim', 'git': 'git', 'tree-sitter': 'tree-sitter-cli', 'make': 'make', 'unzip': 'unzip'})
     if machine['features']['development']:
         tools.update({'git': 'git', 'lazygit': 'lazygit'})
     required.update(package for tool, package in tools.items() if not shutil.which(tool))
@@ -233,12 +236,7 @@ unset commander_plugin
         target = config / 'fish/conf.d/commander-os.fish'
         files[target] = files[target].replace('    fish_user_key_bindings', '    if command -q fzf\n        fzf --fish | source\n    end\n    fish_user_key_bindings')
     if machine['features']['neovim']:
-        # Do not replace an existing editor configuration in direct mode.
-        init = config / 'nvim/init.lua'
-        record = install_state.load()['files'].get(str(init))
-        owned = record and (not init.exists() or (init.is_file() and not init.is_symlink() and install_state.digest(init) == record['installed']))
-        if not (config / 'nvim').exists() or owned:
-            files[config / 'nvim/init.lua'] = 'vim.opt.number = true\nvim.opt.expandtab = true\nvim.opt.shiftwidth = 2\nvim.opt.tabstop = 2\n'
+        files.update(editor.config_files(config))
     return files
 
 
@@ -282,12 +280,20 @@ def install_native(machine, *, apply, install_missing, configure_login):
     starship = manager != 'brew' and not shutil.which('starship') and not os.access(home / '.local/bin/starship', os.X_OK)
     shell = machine.get('shell', 'fish' if machine['features']['fish'] else 'keep')
     starship = starship and shell != 'keep'
-    font_missing = manager != 'brew' and shell != 'keep' and fonts.needed()
+    font_missing = manager != 'brew' and (shell != 'keep' or machine['features']['neovim']) and fonts.needed()
+    lazyvim = config / 'nvim/init.lua' in files
+    editor_missing = lazyvim and editor.needs_tools(home)
     blesh = shell == 'bash' and not (home / '.local/share/blesh/ble.sh').is_file()
     print(f'Direct install via {manager}; Nix and Home Manager will not be installed.')
     print('Missing packages: ' + (', '.join(packages) or 'none'))
     if manager == 'apt-get' and 'fastfetch' in packages:
         print(f'Fastfetch uses apt when available; otherwise its official {FASTFETCH_RELEASE} .deb is downloaded and checksum-verified.')
+    if lazyvim:
+        print('Neovim will use the official LazyVim starter. Plugins download on first launch.')
+        if editor_missing:
+            print('LazyVim requires current Neovim and Tree-sitter; Linux uses checksum-verified user-local binaries when distro versions are too old. macOS uses Homebrew.')
+    elif machine['features']['neovim']:
+        print('Existing customized Neovim configuration will be preserved.')
     if font_missing:
         print(f'JetBrainsMono Nerd Font {fonts.VERSION} will be downloaded, checksum-verified and installed in your user fonts directory.')
     if blesh:
@@ -302,7 +308,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
         return 0
     if home != Path.home() or machine['username'] != pwd.getpwuid(os.getuid()).pw_name:
         raise ValueError('Activation settings must match the current user and home directory')
-    if not install_missing and (packages or starship or blesh or font_missing):
+    if not install_missing and (packages or starship or blesh or font_missing or editor_missing):
         raise RuntimeError('Dependencies are missing and --no-install was specified')
     if input('Type APPLY to install the listed tools and configuration: ') != 'APPLY':
         print('Cancelled.')
@@ -338,6 +344,8 @@ def install_native(machine, *, apply, install_missing, configure_login):
             installed = [name for name in absent if package_installed(manager, name)]
             receipt['packages'] = sorted(set(receipt['packages'] + installed))
             install_state.save(receipt)
+    if lazyvim:
+        editor.ensure_tools(home, receipt)
     if font_missing:
         fonts.install(home, receipt)
     if starship:

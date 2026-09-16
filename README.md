@@ -33,7 +33,7 @@ package manager or opt into **Home Manager** for pinned packages and generations
 | **Icons that render** | JetBrainsMono Nerd Font installation and a grouped Fastfetch system overview. |
 | **Faster navigation** | zoxide, fzf file and text pickers, eza listings and directory shortcuts. |
 | **A personal welcome** | Write your own greeting, insert your username, or turn the greeting off. |
-| **Everyday helpers** | Git shortcuts, archive extraction and optional Neovim and development tools. |
+| **Everyday helpers** | Git shortcuts, archive extraction and optional Neovim with the official LazyVim starter, plus development tools. |
 | **Maintenance included** | Reinstall, remove selected components, or detach Home Manager while keeping your tools. |
 
 Fish includes built-in suggestions and highlighting. Bash uses **ble.sh**. Zsh
@@ -125,7 +125,7 @@ Your shell, greeting and optional features are saved outside the repository in
 `~/.config/commander-os/machine.json`, respecting `XDG_CONFIG_HOME`.
 
 - **Shell:** `fish`, `bash`, `zsh` or `keep`.
-- **Editor:** toggle the Neovim feature.
+- **Editor:** toggle Neovim with the default LazyVim starter.
 - **Development:** toggle Git configuration and the tools available for your backend.
 
 To inspect a native installation plan first:
@@ -136,6 +136,21 @@ To inspect a native installation plan first:
 
 `--no-install` prohibits dependency installation. Other preview commands may offer
 to install prerequisites. [Settings and previews →](docs/guide.md#settings-and-previews)
+
+## Neovim with LazyVim
+
+Enabling Neovim installs the [official LazyVim starter](https://github.com/LazyVim/starter).
+Open `nvim` after installation; its first launch downloads the plugins. Then run
+`:LazyHealth` to check the setup. Internet access is required for that first launch.
+
+Native installs upgrade Myfish's unchanged minimal editor config, while preserving
+existing personal or edited configs. Home Manager manages the starter Lua files;
+its generated plugin lockfile remains writable. Plugins update through lazy.nvim,
+independently of Myfish's Nix lock.
+
+Older native Linux packages get checksum-verified Neovim and Tree-sitter binaries
+under `~/.local`, with install records for removal. macOS uses Homebrew; Home Manager
+supplies the tools through Nix. [Editor details →](docs/guide.md#neovim-and-lazyvim)
 
 ## Update or uninstall
 
