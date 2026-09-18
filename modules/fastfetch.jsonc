@@ -23,132 +23,190 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-{
-"$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
-"logo": {
-"padding": {
-"top": 1
-}
-},
-"display": {
-"separator": " 󰑃  "
-},
-"modules": [
-    "break",
-    {
-    "type": "os",
-    "key": " DISTRO",
-    "keyColor": "yellow"
-    },
-    {
-    "type": "kernel",
-    "key": "│ ├",
-    "keyColor": "yellow"
-    },
-    {
-    "type": "packages",
-    "key": "│ ├󰏖",
-    "keyColor": "yellow"
-    },
-    {
-    "type": "command",
-    "key": "│ ├",
-    "keyColor": "yellow",
-    "text": "birth_install=$(stat -c %W / 2>/dev/null || stat -f %B / 2>/dev/null || echo 0); case $birth_install in ''|0|-1) echo unknown;; *) current=$(date +%s); time_progression=$((current - birth_install)); days_difference=$((time_progression / 86400)); echo $days_difference days;; esac"
-    },
-    {
-    "type": "shell",
-    "key": "│ └",
-    "keyColor": "yellow"
-    },
 
-    {
-    "type": "wm",
-    "key": " DE/WM",
-    "keyColor": "blue"
+{
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "type": "kitty",
+        "source": "~/.config/fastfetch/png/arch.png",
+        "width": 24
     },
-    {
-    "type": "wmtheme",
-    "key": "│ ├󰉼",
-    "keyColor": "blue"
+    "display": {
+        "separator": " "
     },
-    {
-    "type": "icons",
-    "key": "│ ├󰀻",
-    "keyColor": "blue"
-    },
-    {
-        "type": "cursor",
-        "key": "│ ├",
-        "keyColor": "blue",
-    },
-    {
-        "type": "terminalfont",
-        "key": "│ ├",
-        "keyColor": "blue",
-    },
-    {
-    "type": "terminal",
-    "key": "│ └",
-    "keyColor": "blue"
-    },
-    {
-    "type": "host",
-    "key": "󰌢 SYSTEM",
-    "keyColor": "green"
-    },
-    {
-    "type": "cpu",
-    "key": "│ ├󰻠",
-    "keyColor": "green"
-    },
-    {
-    "type": "gpu",
-    "key": "│ ├󰻑",
-    "format": "{2}",
-    "keyColor": "green"
-    },
-    {
-    "type": "display",
-    "key": "│ ├󰍹",
-    "keyColor": "green",
-    "compactType": "original-with-refresh-rate"
-    },
-    {
-    "type": "memory",
-    "key": "│ ├󰾆",
-    "keyColor": "green"
-    },
-    {
-    "type": "swap",
-    "key": "│ ├󰓡",
-    "keyColor": "green"
-    },
-    {
-    "type": "uptime",
-    "key": "│ ├󰅐",
-    "keyColor": "green"
-    },
-    {
-    "type": "sound",
-    "key": " AUDIO",
-    "format": "{2}",
-    "keyColor": "magenta"
-    },
-    {
-    "type": "player",
-    "key": "│ ├󰥠",
-    "keyColor": "magenta"
-    },
-    {
-    "type": "media",
-    "key": "│ └󰝚",
-    "keyColor": "magenta"
-    },
-    {
-    "type": "custom",
-    "format": "\u001b[90m  \u001b[31m  \u001b[32m  \u001b[33m  \u001b[34m  \u001b[35m  \u001b[36m  \u001b[37m  \u001b[38m  \u001b[39m  \u001b[39m    \u001b[38m  \u001b[37m  \u001b[36m  \u001b[35m  \u001b[34m  \u001b[33m  \u001b[32m  \u001b[31m  \u001b[90m "
-    },
-    "break",
+    "modules": [
+        "break",
+        {
+            "type": "custom",
+            "format": "{#33}╭─  DISTRO ─────────────────────────────────────────────────────────────────────────────────────────────╮{#0}"
+        },
+        {
+            "type": "os",
+            "key": "{#33}\u001b[s\u001b[105C│\u001b[u│ {#0}{#33} OS{#0}",
+            "keyColor": "yellow"
+        },
+        {
+            "type": "kernel",
+            "key": "{#33}\u001b[s\u001b[105C│\u001b[u│ {#0}{#33} Kernel{#0}",
+            "keyColor": "yellow"
+        },
+        {
+            "type": "packages",
+            "key": "{#33}\u001b[s\u001b[105C│\u001b[u│ {#0}{#33}󰏖 Packages{#0}",
+            "keyColor": "yellow"
+        },
+        {
+            "type": "command",
+            "key": "{#33}\u001b[s\u001b[105C│\u001b[u│ {#0}{#33} OS Age{#0}",
+            "keyColor": "yellow",
+            "text": "birth_install=$(stat -c %W / 2>/dev/null || stat -f %B / 2>/dev/null || echo 0); case $birth_install in ''|0|-1) echo unknown;; *) current=$(date +%s); time_progression=$((current - birth_install)); days_difference=$((time_progression / 86400)); echo $days_difference days;; esac"
+        },
+        {
+            "type": "shell",
+            "key": "{#33}\u001b[s\u001b[105C│\u001b[u│ {#0}{#33} Shell{#0}",
+            "keyColor": "yellow"
+        },
+        {
+            "type": "custom",
+            "format": "{#33}╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯{#0}"
+        },
+        {
+            "type": "custom",
+            "format": "{#34}╭─  DE/WM ──────────────────────────────────────────────────────────────────────────────────────────────╮{#0}"
+        },
+        {
+            "type": "wm",
+            "key": "{#34}\u001b[s\u001b[105C│\u001b[u│ {#0}{#34} Window Manager{#0}",
+            "keyColor": "blue"
+        },
+        {
+            "type": "wmtheme",
+            "key": "{#34}\u001b[s\u001b[105C│\u001b[u│ {#0}{#34}󰉼 Theme{#0}",
+            "keyColor": "blue"
+        },
+        {
+            "type": "icons",
+            "key": "{#34}\u001b[s\u001b[105C│\u001b[u│ {#0}{#34}󰀻 Icons{#0}",
+            "keyColor": "blue"
+        },
+        {
+            "type": "cursor",
+            "key": "{#34}\u001b[s\u001b[105C│\u001b[u│ {#0}{#34} Cursor{#0}",
+            "keyColor": "blue"
+        },
+        {
+            "type": "terminalfont",
+            "key": "{#34}\u001b[s\u001b[105C│\u001b[u│ {#0}{#34} Font{#0}",
+            "keyColor": "blue"
+        },
+        {
+            "type": "terminal",
+            "key": "{#34}\u001b[s\u001b[105C│\u001b[u│ {#0}{#34} Terminal{#0}",
+            "keyColor": "blue"
+        },
+        {
+            "type": "custom",
+            "format": "{#34}╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯{#0}"
+        },
+        {
+            "type": "custom",
+            "format": "{#32}╭─ 󰌢 SYSTEM ─────────────────────────────────────────────────────────────────────────────────────────────╮{#0}"
+        },
+        {
+            "type": "host",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰌢 Computer{#0}",
+            "keyColor": "green"
+        },
+        {
+            "type": "board",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰌢 Board{#0}",
+            "keyColor": "green",
+            "format": "{name}{?version} ({version}){?}"
+        },
+        {
+            "type": "cpu",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰻠 CPU{#0}",
+            "keyColor": "green"
+        },
+        {
+            "type": "gpu",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰻑 GPU{#0}",
+            "format": "{2}",
+            "keyColor": "green"
+        },
+        {
+            "type": "display",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰍹 Display{#0}",
+            "keyColor": "green",
+            "compactType": "original-with-refresh-rate"
+        },
+        {
+            "type": "memory",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰾆 Memory{#0}",
+            "keyColor": "green"
+        },
+        {
+            "type": "swap",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰓡 Swap{#0}",
+            "keyColor": "green"
+        },
+        {
+            "type": "uptime",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰅐 Uptime{#0}",
+            "keyColor": "green"
+        },
+        {
+            "type": "command",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰩟 Local IP{#0}",
+            "keyColor": "green",
+            "text": "ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i==\"src\") {print $(i+1); exit}}' | head -n1"
+        },
+        {
+            "type": "command",
+            "key": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#32}󰖩 Wi-Fi{#0}",
+            "keyColor": "green",
+            "text": "iwgetid -r 2>/dev/null || nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '$1==\"yes\"{print $2; exit}'"
+        },
+        {
+            "type": "custom",
+            "format": "{#32}╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯{#0}"
+        },
+        {
+            "type": "custom",
+            "format": "{#35}╭─  AUDIO ──────────────────────────────────────────────────────────────────────────────────────────────╮{#0}"
+        },
+        {
+            "type": "sound",
+            "key": "{#35}\u001b[s\u001b[105C│\u001b[u│ {#0}{#35} Sound{#0}",
+            "format": "{2}",
+            "keyColor": "magenta"
+        },
+        {
+            "type": "player",
+            "key": "{#35}\u001b[s\u001b[105C│\u001b[u│ {#0}{#35}󰥠 Player{#0}",
+            "keyColor": "magenta"
+        },
+        {
+            "type": "media",
+            "key": "{#35}\u001b[s\u001b[105C│\u001b[u│ {#0}{#35}󰝚 Media{#0}",
+            "keyColor": "magenta"
+        },
+        {
+            "type": "custom",
+            "format": "{#35}╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯{#0}"
+        },
+        {
+            "type": "custom",
+            "format": "{#32}╭─ 󱥚 colors ─────────────────────────────────────────────────────────────────────────────────────────────╮{#0}"
+        },
+        {
+            "type": "custom",
+            "format": "{#32}\u001b[s\u001b[105C│\u001b[u│ {#0}{#37}󰮯  {#97}󰊠 {#36}󰊠 {#96}󰊠 {#35}󰊠 {#95}󰊠 {#34}󰊠 {#94}󰊠 {#33}󰊠 {#93}󰊠 {#32}󰊠 {#92}󰊠 {#31}󰊠 {#91}󰊠 {#30}󰊠 {#90}󰊠 {#0}"
+        },
+        {
+            "type": "custom",
+            "format": "{#32}╰────────────────────────────────────────────────────────────────────────────────────────────────────────╯{#0}"
+        },
+        "break"
     ]
 }

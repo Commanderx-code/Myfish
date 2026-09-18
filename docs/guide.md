@@ -250,11 +250,15 @@ those extra helpers require their corresponding distro packages.
 Personal Config Bible/backup commands, SSH-agent startup, music-player autostart,
 and Arch-only maintenance shortcuts have not been imported into this portable setup.
 
-Both installation modes use the [Chris Titus Tech Fastfetch layout](https://github.com/ChrisTitusTech/mybash/blob/main/config.jsonc)
-at `~/.config/fastfetch/config.jsonc` (respecting `XDG_CONFIG_HOME` in native mode).
-It includes grouped OS, desktop, hardware and audio information. The bundled
-configuration retains its MIT license. Existing configurations use the normal
-backup/recovery flow; selecting “keep current shell” leaves Fastfetch configuration alone.
+Both installation modes use the Commander Fastfetch layout from dotfiles at
+`~/.config/fastfetch/config.jsonc` (respecting `XDG_CONFIG_HOME` in native mode).
+It includes labeled colored boxes for distro, desktop, hardware and audio,
+a Board row, Pac-Man colors, and the transparent Arch PNG. Both Revan images
+are saved in `fastfetch/png` as optional alternatives. The layout keeps the
+original Chris Titus Tech MIT attribution and portable Linux/macOS OS-age command.
+Existing configurations and PNGs use the normal backup/recovery flow; selecting
+“keep current shell” leaves Fastfetch configuration alone. PNG rendering needs
+an image-capable terminal; the bundled config uses Kitty graphics.
 
 Native Fish, Bash and Zsh installs include Fastfetch when it is missing. On apt
 systems, the installer prefers the distro package after refreshing package lists.

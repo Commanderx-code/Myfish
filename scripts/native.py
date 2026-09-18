@@ -1,5 +1,6 @@
 """Direct installation without Nix or Home Manager."""
 import os
+import json
 import hashlib
 import re
 from pathlib import Path
@@ -231,7 +232,13 @@ unset commander_plugin
         files[home / '.local/bin/fzf-preview'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-preview').read_text()
         files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
         files[config / 'commander-os/greeting.txt'] = machine.get('greeting', 'Hello, {user} ⚡').replace('{user}', machine['username']) + '\n'
-        files[config / 'fastfetch/config.jsonc'] = (Path(__file__).resolve().parents[1] / 'modules/fastfetch.jsonc').read_text()
+        modules = Path(__file__).resolve().parents[1] / 'modules'
+        fastfetch = (modules / 'fastfetch.jsonc').read_text()
+        fastfetch = fastfetch.replace(json.dumps('~/.config/fastfetch/png/arch.png'),
+                                     json.dumps(str(config / 'fastfetch/png/arch.png')))
+        files[config / 'fastfetch/config.jsonc'] = fastfetch
+        for image in (modules / 'fastfetch-png').glob('*.png'):
+            files[config / 'fastfetch/png' / image.name] = image.read_bytes()
     if host.is_macos() and shell == 'fish':
         target = config / 'fish/conf.d/commander-os.fish'
         files[target] = files[target].replace('    fish_user_key_bindings', '    if command -q fzf\n        fzf --fish | source\n    end\n    fish_user_key_bindings')
@@ -246,18 +253,19 @@ def write_configs(files, receipt=None):
         if target.is_symlink() or str(target.resolve()).startswith('/nix/store/'):
             raise RuntimeError(f'Refusing to replace managed/symlinked configuration: {target}. Use its existing manager.')
     for target, contents in files.items():
+        data = contents if isinstance(contents, bytes) else contents.encode()
         if receipt is not None:
-            install_state.capture(receipt, target, contents)
+            install_state.capture(receipt, target, data)
             install_state.save(receipt)
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
-            if target.read_text() == contents:
+            if target.read_bytes() == data:
                 continue
             backup = target.with_name(target.name + suffix)
             shutil.copy2(target, backup)
             print(f'Backup: {backup}')
-        with tempfile.NamedTemporaryFile(mode='w', dir=target.parent, delete=False) as tmp:
-            tmp.write(contents)
+        with tempfile.NamedTemporaryFile(mode='wb', dir=target.parent, delete=False) as tmp:
+            tmp.write(data)
         os.replace(tmp.name, target)
 
 

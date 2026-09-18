@@ -42,7 +42,7 @@ def capture(data, path, contents=None):
         }
     if contents is not None:
         # Journal the intended content before writing, including partially failed installs.
-        data['files'][str(path)]['installed'] = hashlib.sha256(contents.encode()).hexdigest()
+        data['files'][str(path)]['installed'] = hashlib.sha256(contents if isinstance(contents, bytes) else contents.encode()).hexdigest()
 
 
 def finished(data, path):
