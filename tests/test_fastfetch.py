@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -14,6 +15,32 @@ import install_state
 
 
 class FastfetchTests(unittest.TestCase):
+    def test_png_install_uses_xdg_path_and_preserves_binary_backup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            config = home / 'custom config'
+            machine = {'username': 'example', 'shell': 'fish',
+                       'features': {'fish': True, 'neovim': False}}
+            files = native.config_files(machine, home, config)
+            text = files[config / 'fastfetch/config.jsonc']
+            settings = json.loads(text[text.index('\n{'):])
+            image = config / 'fastfetch/png/arch.png'
+            self.assertEqual(settings['logo']['source'], str(image))
+            image.parent.mkdir(parents=True)
+            image.write_bytes(b'old\xffPNG')
+            receipt = {'version': 1, 'files': {}, 'packages': []}
+            with patch.dict(os.environ, XDG_STATE_HOME=str(home / 'state')):
+                native.write_configs(files, receipt)
+                native.write_configs(files, receipt)
+            self.assertEqual(image.read_bytes(), files[image])
+            self.assertTrue(image.read_bytes().startswith(b'\x89PNG\r\n\x1a\n'))
+            backups = list(image.parent.glob('arch.png.commander-os-*'))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_bytes(), b'old\xffPNG')
+            self.assertEqual(receipt['files'][str(image)]['installed'], hashlib.sha256(image.read_bytes()).hexdigest())
+            for name in ('revan.png', 'revan-red-saber.png'):
+                self.assertTrue((image.parent / name).is_file())
+
     def setUp(self):
         for target, value in [('editor.needs_tools', False), ('editor.ensure_tools', None)]:
             patcher = patch(target, return_value=value)

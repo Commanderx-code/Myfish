@@ -77,6 +77,10 @@ in
     "fastfetch/config.jsonc" = lib.mkIf (shell != "keep") {
       source = ./fastfetch.jsonc;
     };
+    "fastfetch/png" = lib.mkIf (shell != "keep") {
+      source = ./fastfetch-png;
+      recursive = true;
+    };
     "fish/conf.d" = lib.mkIf (shell == "fish") {
       source = ./fish/conf.d;
       recursive = true;
