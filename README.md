@@ -205,3 +205,9 @@ listed in the guide.
 
 <sub>Previously Commander-os. Existing settings paths, startup markers and recovery
 records keep their original names so existing installations remain compatible.</sub>
+
+## Toolbox integration
+
+Changes on `main` are picked up automatically after CI succeeds. Add new exported
+tools to [toolbox.json](toolbox.json); see [publishing tools](TOOLBOX.md) for package
+names, config paths and the update workflow.
