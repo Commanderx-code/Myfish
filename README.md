@@ -32,6 +32,7 @@ package manager or opt into **Home Manager** for pinned packages and generations
 | **A recognizable prompt** | A shared Powerline-style Starship theme with directory, Git and clock segments. |
 | **Icons that render** | JetBrainsMono Nerd Font installation and a grouped Fastfetch system overview. |
 | **Faster navigation** | zoxide, fzf file and text pickers, eza listings and directory shortcuts. |
+| **Persistent terminal sessions** | Zellij with Tokyo Night Storm, your selected shell and locked shortcuts; launch manually. |
 | **A personal welcome** | Write your own greeting, insert your username, or turn the greeting off. |
 | **Everyday helpers** | Git shortcuts, archive extraction and optional Neovim with the official LazyVim starter, plus development tools. |
 | **Maintenance included** | Reinstall, remove selected components, or detach Home Manager while keeping your tools. |

@@ -26,6 +26,7 @@ def package_plan(machine, manager):
              'bat': 'bat', 'eza': 'eza', 'jq': 'jq', 'fzf': 'fzf', 'zoxide': 'zoxide', 'curl': 'curl', 'tar': 'tar'}
     if shell != 'keep':
         tools[shell] = shell
+        tools['zellij'] = 'zellij'
     if shell != 'keep':
         tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git', 'fastfetch': 'fastfetch', 'fc-list': 'fontconfig', 'fc-cache': 'fontconfig'})
     if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
@@ -59,7 +60,11 @@ FASTFETCH_DEBS = {
 
 
 def apt_has_fastfetch():
-    result = subprocess.run(['apt-cache', 'policy', 'fastfetch'], check=True, text=True,
+    return apt_has_package('fastfetch')
+
+
+def apt_has_package(package):
+    result = subprocess.run(['apt-cache', 'policy', package], check=True, text=True,
                             stdout=subprocess.PIPE, env=dict(os.environ, LC_ALL='C'))
     candidate = re.search(r'^\s*Candidate:\s*(\S+)', result.stdout, re.MULTILINE)
     return bool(candidate and candidate.group(1) != '(none)')
@@ -109,6 +114,7 @@ def brew_package_plan(machine):
         required.update(['zsh-autosuggestions', 'zsh-syntax-highlighting'])
     if shell != 'keep':
         tools['starship'] = 'starship'
+        tools['zellij'] = 'zellij'
     if machine['features']['neovim']:
         tools.update({'nvim': 'neovim', 'git': 'git', 'tree-sitter': 'tree-sitter-cli', 'make': 'make', 'unzip': 'unzip'})
     if machine['features']['development']:
@@ -229,6 +235,12 @@ unset commander_plugin
             files[config / 'fish' / source.relative_to(fish_source)] = source.read_text()
         files[home / '.local/bin/fzf-preview'] = (fish_source.parent / 'fzf-preview').read_text()
     if shell != 'keep':
+        # Keep personal or Home Manager-owned Zellij settings untouched.
+        zellij_config = config / 'zellij/config.kdl'
+        if not zellij_config.exists() and not zellij_config.is_symlink():
+            files[zellij_config] = ('// Start manually with zellij; Ctrl+G unlocks controls.\n'
+                                    'theme "tokyo-night-storm"\ndefault_mode "locked"\n'
+                                    f'default_shell {json.dumps(shell)}\n')
         files[home / '.local/bin/fzf-preview'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-preview').read_text()
         files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
         files[config / 'commander-os/greeting.txt'] = machine.get('greeting', 'Hello, {user} ⚡').replace('{user}', machine['username']) + '\n'
@@ -328,6 +340,8 @@ def install_native(machine, *, apply, install_missing, configure_login):
     if packages:
         if manager == 'apt-get':
             subprocess.run(['sudo', 'apt-get', 'update'], check=True)
+            if 'zellij' in packages and not apt_has_package('zellij'):
+                raise RuntimeError('Zellij is unavailable in your enabled APT repositories. Install Zellij through a trusted source first, or use Home Manager mode. No configuration was changed.')
             command = ['sudo', manager, 'install', '-y']
         elif manager == 'brew':
             command = ['brew', 'install', '--formula']
