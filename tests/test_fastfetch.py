@@ -39,7 +39,8 @@ class FastfetchTests(unittest.TestCase):
             self.assertEqual(backups[0].read_bytes(), b'old\xffPNG')
             self.assertEqual(receipt['files'][str(image)]['installed'], hashlib.sha256(image.read_bytes()).hexdigest())
             for name in ('revan.png', 'revan-red-saber.png'):
-                self.assertTrue((image.parent / name).is_file())
+                self.assertNotIn(image.parent / name, files)
+                self.assertFalse((image.parent / name).exists())
 
     def setUp(self):
         for target, value in [('editor.needs_tools', False), ('editor.ensure_tools', None)]:

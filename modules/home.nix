@@ -129,6 +129,18 @@ in
     enableZshIntegration = shell == "zsh";
     settings = builtins.fromTOML (builtins.readFile ./starship.toml);
   };
+  programs.zellij = lib.mkIf (shell != "keep") {
+    enable = true;
+    enableFishIntegration = false;
+    enableBashIntegration = false;
+    enableZshIntegration = false;
+    settings = {
+      theme = "tokyo-night-storm";
+      default_mode = "locked";
+      default_shell =
+        if shell == "bash" then "${pkgs.bashInteractive}/bin/bash" else "${pkgs.${shell}}/bin/${shell}";
+    };
+  };
   programs.fzf = {
     enable = true;
     enableFishIntegration = shell == "fish";

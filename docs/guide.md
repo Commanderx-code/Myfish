@@ -253,8 +253,7 @@ and Arch-only maintenance shortcuts have not been imported into this portable se
 Both installation modes use the Commander Fastfetch layout from dotfiles at
 `~/.config/fastfetch/config.jsonc` (respecting `XDG_CONFIG_HOME` in native mode).
 It includes labeled colored boxes for distro, desktop, hardware and audio,
-a Board row, Pac-Man colors, and the transparent Arch PNG. Both Revan images
-are saved in `fastfetch/png` as optional alternatives. The layout keeps the
+a Board row, Pac-Man colors, and the transparent Arch PNG. The layout keeps the
 original Chris Titus Tech MIT attribution and portable Linux/macOS OS-age command.
 Existing configurations and PNGs use the normal backup/recovery flow; selecting
 “keep current shell” leaves Fastfetch configuration alone. PNG rendering needs
@@ -267,6 +266,34 @@ or arm64 and checks the release SHA-256 before installing it through apt. This
 fallback is announced before confirmation and recorded for later removal. See
 [Fastfetch's release](https://github.com/fastfetch-cli/fastfetch/releases/tag/2.68.1).
 Existing Fastfetch installations are reused; `--no-install` refuses missing tools.
+
+## Zellij sessions
+
+Fish, Bash and Zsh setups include Zellij in both native and Home Manager mode.
+The "keep current shell" option does not add it. Run `zellij` manually; it never
+starts automatically. The preset uses Tokyo Night Storm and the selected shell.
+
+```sh
+zellij --session work  # start a named session
+zellij list-sessions   # list sessions
+zellij attach work    # reconnect
+```
+
+New configurations start locked so shell/fzf shortcuts reach your tools.
+Press **Ctrl+G** to unlock or lock Zellij controls. While unlocked, **Ctrl+O**
+then **d** detaches without closing the session. The status bar shows controls.
+
+Native installs preserve any existing `~/.config/zellij/config.kdl` (respecting
+`XDG_CONFIG_HOME`); those configs retain their own theme and keybindings. New
+files are tracked by the normal install receipt for removal. Home Manager owns
+its generated config; change `programs.zellij` in `modules/home.nix` to customize
+it. Native package versions depend on the distribution. If APT has no Zellij
+candidate, setup stops before changing configuration; install Zellij from a
+trusted source first or choose Home Manager. No third-party repositories are added.
+
+Image previews depend on the installed Zellij version and graphics protocol;
+Kitty graphics requires Zellij 0.45 or newer. Use a normal terminal tab if an
+image preview does not render inside a session.
 
 ## Bash and Zsh customizations
 
