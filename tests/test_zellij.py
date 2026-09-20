@@ -29,7 +29,8 @@ class ZellijTests(unittest.TestCase):
                     self.assertEqual('zellij' in native.package_plan(self.machine, manager), shell != 'keep')
 
     def test_existing_binary_is_not_reinstalled(self):
-        with patch.object(native.shutil, 'which', return_value='/fixture'):
+        with patch.object(native.shutil, 'which', return_value='/fixture'), \
+             patch.object(native, 'package_installed', return_value=True):
             for manager in ('apt-get', 'dnf', 'pacman', 'brew'):
                 self.assertNotIn('zellij', native.package_plan(self.machine, manager))
 
