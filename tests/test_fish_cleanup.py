@@ -66,7 +66,7 @@ fdi
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='fish-cleanup-')
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.bin = self.root / 'bin'
         self.bin.mkdir()
         self.log = self.root / 'calls'
@@ -116,7 +116,7 @@ fdi
 
     def test_broot_cleans_temp_file_without_trash_and_preserves_failure(self):
         self.mock('broot', 'printf "%s" "$2" > "$TEST_LOG"\n'
-                  'printf "/bin/false\\n" > "$2"\nexit "${TEST_BROOT_STATUS:-0}"')
+                  'printf "false\\n" > "$2"\nexit "${TEST_BROOT_STATUS:-0}"')
         for status, expected in [('0', 1), ('42', 42)]:
             self.env['TEST_BROOT_STATUS'] = status
             result = self.run_fish('function rm; echo TRASH_CALLED; return 99; end; br')
