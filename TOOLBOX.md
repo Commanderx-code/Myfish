@@ -73,3 +73,21 @@ No extra cross-repository token is needed for these public repositories.
 GitHub disables scheduled workflows in public repos after 60 days without repo
 activity; re-enable the workflow in Actions if necessary. New source repositories
 must be explicitly connected to the sync workflow; it watches dotfiles and Myfish.
+
+## Shared Fish source of truth
+
+Myfish owns the portable functions in `modules/fish/functions/`. Edit and push a
+shared function here once. After Linux and both Mac CI jobs pass, dotfiles'
+[shared Fish importer](https://github.com/Commanderx-code/dotfiles/actions/workflows/sync-myfish.yml)
+automatically imports the tested functions, preserving its explicit workstation
+overrides. It checks every recorded import hash, tests/builds the combined
+configuration, and publishes its own validated commit. Toolbox then adopts the
+tested Myfish and dotfiles revisions through its existing schedule.
+
+New portable functions are included automatically unless their name conflicts
+with a dotfiles-owned function. Startup snippets and machine-specific functions
+retain their repository ownership. Do not edit generated Myfish copies in
+dotfiles; fix shared behavior here so Linux and macOS CI can validate it.
+
+See the [complete sync guide](https://github.com/Commanderx-code/dotfiles/blob/main/FISH-SYNC.md)
+for timing, override ownership, local checkout updates, and recovery.
