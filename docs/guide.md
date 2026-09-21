@@ -228,7 +228,10 @@ and Fastfetch for an individual shell session.
 
 ## Fish customizations
 
-Fish now includes the portable customizations from the personal dotfiles:
+Myfish is the source of truth for shared portable Fish functions. Dotfiles imports
+tested revisions automatically; see [shared Fish publishing](../TOOLBOX.md#shared-fish-source-of-truth).
+
+Fish includes these portable customizations:
 
 - Colored, icon-based `ls`, `ll`, `la`, `tree`, sort/filter variants and Git status listings.
 - `..`, `...`, `bd`, and `home` navigation abbreviations; `mkcd`, `fcd` (immediate visible directories), `cdi` (recursive, including hidden directories), `dirsize`, and `psg`.
