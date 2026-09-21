@@ -231,7 +231,7 @@ and Fastfetch for an individual shell session.
 Fish now includes the portable customizations from the personal dotfiles:
 
 - Colored, icon-based `ls`, `ll`, `la`, `tree`, sort/filter variants and Git status listings.
-- `..`, `...`, `bd`, and `home` navigation abbreviations; `mkcd`, `fcd`/`cdi`, `dirsize`, and `psg`.
+- `..`, `...`, `bd`, and `home` navigation abbreviations; `mkcd`, `fcd` (immediate visible directories), `cdi` (recursive, including hidden directories), `dirsize`, and `psg`.
 - Ctrl-P file picker, Ctrl-F text search, Ctrl-H fuzzy history, and `**` followed by Tab for file completion. Ctrl-R remains available.
 - File, image and PDF previews; Ctrl-/ toggles the preview pane. Image previews depend on terminal sixel support.
 - `gcom` stages and commits; `lazyg` additionally pushes, stopping on errors.
@@ -241,6 +241,14 @@ Fish now includes the portable customizations from the personal dotfiles:
 `rm` uses the trash when `trash-cli` is installed; `cp` and `mv` ask before overwriting.
 Use `command rm`, `command cp`, or `command mv` for the underlying utilities.
 Set `COMMANDER_QUIET=1` before launching Fish to suppress the greeting and Fastfetch.
+Picker shortcuts `fdi`, `rgi`, and `cdi` load on demand from `functions/`.
+Directory and file pickers preserve spaces and newlines and support both `fd` and
+Debian's `fdfind`. Session PATH/editor defaults also apply to noninteractive Fish;
+existing editor, pager and FZF environment settings take priority.
+Unused icon globals and the old preview function were removed; previews use the
+installed `fzf-preview` script. Home Manager removes its obsolete managed links.
+Native upgrades archive unchanged, recorded copies of the two obsolete files;
+modified or unrecorded copies remain untouched.
 The notification plugin retains its MIT license in `modules/fish/conf.d/80-done.fish`.
 
 Home Manager installs the preview, archive, notification, Fastfetch and broot dependencies.

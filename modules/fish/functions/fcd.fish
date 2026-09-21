@@ -1,6 +1,3 @@
-function fcd --description 'Fuzzy directory navigation'
-    set -l finder fd
-    command -q fd; or set finder fdfind
-    set -l directory ($finder --type d --hidden --exclude .git --print0 | fzf --read0 --print0 | string split0)
-    test (count $directory) -eq 1; and cd -- "$directory"
+function fcd --description 'Fuzzy cd to an immediate, visible subdirectory'
+    __commander_pick_directory --max-depth 1 --no-ignore --follow
 end

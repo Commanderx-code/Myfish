@@ -147,7 +147,6 @@ def config_files(machine, home, config):
     if shell == 'fish':
         files[config / 'fish/conf.d/commander-os.fish'] = '''# Managed by Commander-os direct installation.
 if status is-interactive
-    fish_add_path "$HOME/.local/bin"
     if test -n "$XDG_CONFIG_HOME"
         set -gx STARSHIP_CONFIG "$XDG_CONFIG_HOME/commander-os/starship.toml"
     else
@@ -161,7 +160,6 @@ if status is-interactive
     end
     if test -r /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish
         source /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish
-        fzf_key_bindings
     end
     fish_user_key_bindings
 end
@@ -279,6 +277,21 @@ def write_configs(files, receipt=None):
         with tempfile.NamedTemporaryFile(mode='wb', dir=target.parent, delete=False) as tmp:
             tmp.write(data)
         os.replace(tmp.name, target)
+
+
+def retire_fish_helpers(config, receipt):
+    """Archive only unchanged, installer-created helpers retired from Fish."""
+    for relative in ('conf.d/20-icons.fish', 'functions/__preview_file.fish'):
+        target = config / 'fish' / relative
+        record = receipt['files'].get(str(target))
+        if (not record or record.get('original') is not None or target.is_symlink()
+                or not target.is_file() or install_state.digest(target) != record.get('installed')):
+            continue
+        backup = target.with_name(target.name + f'.commander-os-retired-{time.time_ns()}')
+        target.rename(backup)
+        del receipt['files'][str(target)]
+        install_state.save(receipt)
+        print(f'Archived obsolete Fish helper: {backup}')
 
 
 def install_native(machine, *, apply, install_missing, configure_login):
@@ -399,6 +412,8 @@ def install_native(machine, *, apply, install_missing, configure_login):
                 receipt['files'][str(path)]['installed'] = install_state.digest(path)
         install_state.save(receipt)
     write_configs(files, receipt)
+    if shell == 'fish':
+        retire_fish_helpers(config, receipt)
     if shell != 'keep':
         (home / '.local/bin/fzf-preview').chmod(0o700)
     install_state.save(receipt)

@@ -4,7 +4,7 @@ function fzf_open_file --description "FZF pick a file and open in nvim"
         return 1
     end
 
-    if not type -q fd
+    if not command -q fd; and not command -q fdfind
         echo "fd not installed"
         return 1
     end
@@ -18,7 +18,7 @@ function fzf_open_file --description "FZF pick a file and open in nvim"
     end
 
     set -l file (
-        fd --type f --hidden --follow \
+        __commander_find --type f --hidden --follow --print0 \
             --exclude .git \
             --exclude node_modules \
             --exclude .cache \
@@ -26,16 +26,16 @@ function fzf_open_file --description "FZF pick a file and open in nvim"
             --exclude go/pkg/mod \
             --exclude .local/share \
             2>/dev/null |
-        fzf \
+        command fzf --read0 --print0 \
             --layout=reverse \
             --border \
             --ansi \
             --preview-window='right,60%,nowrap' \
             --preview="bash "(string escape -- "$preview")" {}" \
-            --bind='ctrl-/:toggle-preview'
+            --bind='ctrl-/:toggle-preview' | string split0
     )
 
-    test -z "$file"; and return
+    test (count $file) -eq 1; or return 0
 
     set -l editor (__commander_editor); or return
     commandline -r -- (string join ' ' -- $editor (string escape -- $file))
