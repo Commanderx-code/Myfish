@@ -14,6 +14,35 @@ spec.loader.exec_module(native)
 
 
 class NativeTests(unittest.TestCase):
+    def test_retired_helpers_archive_only_unchanged_installer_created_files(self):
+        config = self.home / '.config'
+        target = config / 'fish/conf.d/20-icons.fish'
+        target.parent.mkdir(parents=True)
+        receipt = {'version': 1, 'files': {}, 'packages': []}
+        native.install_state.capture(receipt, target, 'old icons')
+        target.write_text('old icons')
+        native.retire_fish_helpers(config, receipt)
+        self.assertFalse(target.exists())
+        self.assertNotIn(str(target), receipt['files'])
+        self.assertEqual(next(target.parent.glob('*.commander-os-retired-*')).read_text(), 'old icons')
+        for kind in ('unrecorded', 'modified', 'preexisting', 'symlink'):
+            with self.subTest(kind=kind):
+                target.unlink(missing_ok=True)
+                target.write_text('personal')
+                receipt['files'] = {}
+                if kind != 'unrecorded':
+                    receipt['files'][str(target)] = {
+                        'original': 'saved original' if kind == 'preexisting' else None,
+                        'installed': native.install_state.digest(target) if kind != 'modified' else 'old hash',
+                    }
+                if kind == 'symlink':
+                    destination = self.home / 'managed'
+                    destination.write_text('personal')
+                    target.unlink()
+                    target.symlink_to(destination)
+                native.retire_fish_helpers(config, receipt)
+                self.assertEqual(target.read_text(), 'personal')
+
     def setUp(self):
         for target, value in [('editor.needs_tools', False), ('editor.ensure_tools', None)]:
             patcher = patch(target, return_value=value)
