@@ -38,13 +38,15 @@ function __done_run_powershell_script
     if string length --quiet "$powershell_exe"
         and test -x "$powershell_exe"
 
-        set cmd (string escape $argv)
-
-        eval "$powershell_exe -Command $cmd"
+        command "$powershell_exe" -NoProfile -NonInteractive -Command "$argv[1]"
     end
 end
 
 function __done_windows_notification -a title -a message
+    # Only base64's restricted alphabet enters program source. Decode as UTF-8
+    # and assign XML text nodes so neither PowerShell nor XML interprets data.
+    set -l title64 (printf '%s' "$title" | base64 | string join '')
+    set -l message64 (printf '%s' "$message" | base64 | string join '')
     if test "$__done_notify_sound" -eq 1
         set soundopt "<audio silent=\"false\" src=\"ms-winsoundevent:Notification.Default\" />"
     else
@@ -60,8 +62,8 @@ function __done_windows_notification -a title -a message
         $soundopt
         <visual>
             <binding template=\"ToastText02\">
-                <text id=\"1\">$title</text>
-                <text id=\"2\">$message</text>
+                <text id=\"1\"></text>
+                <text id=\"2\"></text>
             </binding>
         </visual>
     </toast>
@@ -69,6 +71,8 @@ function __done_windows_notification -a title -a message
 
 \$toast_xml = New-Object Windows.Data.Xml.Dom.XmlDocument
 \$toast_xml.loadXml(\$toast_xml_source)
+\$toast_xml.SelectSingleNode('//text[@id=\"1\"]').InnerText = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('$title64'))
+\$toast_xml.SelectSingleNode('//text[@id=\"2\"]').InnerText = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('$message64'))
 
 \$toast = New-Object Windows.UI.Notifications.ToastNotification \$toast_xml
 
@@ -235,7 +239,8 @@ if set -q __done_enabled
             set -l humanized_duration (__done_humanize_duration "$cmd_duration")
 
             set -l title "Done in $humanized_duration"
-            set -l wd (string replace --regex "^$HOME" "~" (pwd))
+            set -l wd (pwd | string collect)
+            set wd (string replace --regex "^$HOME" "~" -- "$wd" | string collect)
             set -l message "$wd/ $argv[1]"
             set -l sender $__done_initial_window_id
 
@@ -264,15 +269,11 @@ if set -q __done_enabled
                 end
 
             else if type -q osascript # AppleScript
-                # escape double quotes that might exist in the message and break osascript. fixes #133
-                set -l message (string replace --all '"' '\"' "$message")
-                set -l title (string replace --all '"' '\"' "$title")
-
-                osascript -e "display notification \"$message\" with title \"$title\""
+                # Keep notification text in argv, never in AppleScript source.
                 if test "$__done_notify_sound" -eq 1
-                    osascript -e "display notification \"$message\" with title \"$title\" sound name \"Glass\""
+                    osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title (item 2 of argv) sound name "Glass"' -e 'end run' -- "$message" "$title"
                 else
-                    osascript -e "display notification \"$message\" with title \"$title\""
+                    osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title (item 2 of argv)' -e 'end run' -- "$message" "$title"
                 end
 
             else if type -q notify-send # Linux notify-send

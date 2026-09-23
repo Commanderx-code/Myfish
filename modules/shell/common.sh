@@ -42,19 +42,18 @@ fdi() {
   "$editor" "$selected"
 }
 rgi() {
-  local query selected filename line editor
+  local query filename line editor
   if [ "$#" -gt 0 ]; then query=$*; else
     printf 'Search text: '
     IFS= read -r query || return
   fi
   [ -n "$query" ] || return 0
-  selected=$(rg --line-number --no-heading --color=always --smart-case --hidden --glob '!.git/*' -- "$query" . |
-    fzf --ansi --delimiter ':' --preview 'bat --style=numbers --color=always --highlight-line {2} {1}' --preview-window 'right,60%,nowrap') || return 0
-  filename=${selected%%:*}
-  selected=${selected#*:}
-  line=${selected%%:*}
+  {
+    IFS= read -r -d '' line && IFS= read -r -d '' filename
+  } < <("$HOME/.local/bin/fzf-rg" --glob '!.git/*' -- "$query" .) || return 0
+  case "$line" in ''|0*|*[!0-9]*) return 1 ;; esac
   editor=$(_commander_editor) || return
-  "$editor" "+$line" "$filename"
+  "$editor" "+$line" -- "$filename"
 }
 extract() {
   [ "$#" -eq 1 ] && [ -f "$1" ] || { echo 'Usage: extract <archive-file>' >&2; return 1; }

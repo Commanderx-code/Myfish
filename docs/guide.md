@@ -324,8 +324,9 @@ Home Manager and direct mode install these files when that shell is selected.
 
 Starship, fzf and zoxide remain initialized through each shell's integration.
 Bash/Zsh preserve normal Tab behavior and use fzf's available completion support.
-Text-search pickers currently expect filenames without colons; file/directory
-pickers preserve spaces. `notify-run` preserves the command's exit status and
+Text-search pickers keep filenames separate from line numbers, including names
+with colons or newlines; file/directory pickers preserve spaces. `notify-run`
+preserves the command's exit status and
 uses `notify-send` on Linux or the system notification service on macOS. Direct mode requires optional
 broot/preview packages just as the Fish setup does; automatic Zsh
 highlighting and suggestions are provided by Home Manager and macOS native mode.

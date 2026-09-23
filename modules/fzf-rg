@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Select an rg JSON match; return numeric line and raw path as NUL records."""
+import base64
+import json
+import os
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+
+
+def raw(value):
+    return value['text'].encode('utf-8') if 'text' in value else base64.b64decode(value['bytes'], validate=True)
+
+
+def decode(token):
+    path, line = json.loads(base64.b64decode(token, validate=True))
+    path = base64.b64decode(path, validate=True)
+    if not path or b'\0' in path or type(line) is not int or line < 1:
+        raise ValueError('Invalid search result')
+    return path, line
+
+
+def main(args):
+    if args[:1] == ['--preview']:
+        path, line = decode(args[1])
+        return subprocess.run(['bat', '--style=numbers', '--color=always',
+                               '--highlight-line', str(line), '--line-range', ':300',
+                               '--', os.fsdecode(path)], check=False).returncode
+
+    result = subprocess.run(['rg', '--json', '--smart-case', '--hidden', *args],
+                            stdout=subprocess.PIPE, check=False)
+    # rg can return 2 after finding matches if another file is unreadable.
+    # Keep those matches usable; stderr already explains the partial search.
+    rows = []
+    for event in result.stdout.splitlines():
+        event = json.loads(event)
+        if event['type'] != 'match':
+            continue
+        data = event['data']
+        path, line = raw(data['path']), data['line_number']
+        token = base64.b64encode(json.dumps([base64.b64encode(path).decode('ascii'), line]).encode()).decode('ascii')
+        decode(token)  # Validate before either preview or editor can consume it.
+        # JSON display escaping keeps tabs, newlines and terminal controls out of
+        # the row framing. The display is never parsed back into a filename.
+        label = json.dumps(os.fsdecode(path), ensure_ascii=True)
+        text = json.dumps(raw(data['lines']).decode('utf-8', 'replace').rstrip('\r\n'), ensure_ascii=True)
+        rows.append(f'{token}\t{label}:{line}: {text}\n')
+    if not rows:
+        if result.returncode not in (0, 1):
+            return result.returncode
+        print('No matches found.', file=sys.stderr)
+        return 0
+    preview = ' '.join(shlex.quote(part) for part in [sys.executable, str(Path(__file__).resolve()), '--preview']) + ' {1}'
+    selected = subprocess.run(['fzf', '--delimiter', '\t', '--with-nth', '2..',
+                               '--layout=reverse', '--border', '--preview', preview,
+                               '--preview-window=right,60%,nowrap', '--bind=ctrl-/:toggle-preview'],
+                              input=''.join(rows).encode(), stdout=subprocess.PIPE, check=False)
+    if selected.returncode in (1, 130):
+        return 0
+    if selected.returncode:
+        return selected.returncode
+    path, line = decode(selected.stdout.split(b'\t', 1)[0])
+    sys.stdout.buffer.write(str(line).encode('ascii') + b'\0' + path + b'\0')
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except (OSError, ValueError, KeyError, IndexError, TypeError) as error:
+        print(f'Search picker: {error}', file=sys.stderr)
+        sys.exit(1)
