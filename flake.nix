@@ -40,6 +40,7 @@
           COMMANDER_TEST_BASH = "${nixpkgs.legacyPackages.${system}.bashInteractive}/bin/bash";
           packages = with nixpkgs.legacyPackages.${system}; [
             python3
+            ripgrep
             fish
             zsh
             shellcheck
