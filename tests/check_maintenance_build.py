@@ -41,6 +41,9 @@ with tempfile.TemporaryDirectory(prefix='commander-build-check-') as temp:
     removal, retained = lifecycle.build_hm(machine, active, True, plan)
     assert (removal / 'activate').is_file()
     assert 'require("config.lazy")' in (active / 'home-files/.config/nvim/init.lua').read_text()
+    picker = active / 'home-files/.local/bin/fzf-rg'
+    assert picker.read_bytes() == (ROOT / 'modules/fzf-rg').read_bytes()
+    assert picker.stat().st_mode & 0o111
     assert (active / 'home-files/.config/nvim/lua/config/lazy.lua').read_bytes() == (ROOT / 'modules/neovim/lua/config/lazy.lua').read_bytes()
     editor_home = Path(temp) / 'editor-check'
     editor_home.mkdir()

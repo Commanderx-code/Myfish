@@ -240,6 +240,7 @@ unset commander_plugin
                                     'theme "tokyo-night-storm"\ndefault_mode "locked"\n'
                                     f'default_shell {json.dumps(shell)}\n')
         files[home / '.local/bin/fzf-preview'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-preview').read_text()
+        files[home / '.local/bin/fzf-rg'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-rg').read_text()
         files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
         files[config / 'commander-os/greeting.txt'] = machine.get('greeting', 'Hello, {user} ⚡').replace('{user}', machine['username']) + '\n'
         modules = Path(__file__).resolve().parents[1] / 'modules'
@@ -416,6 +417,7 @@ def install_native(machine, *, apply, install_missing, configure_login):
         retire_fish_helpers(config, receipt)
     if shell != 'keep':
         (home / '.local/bin/fzf-preview').chmod(0o700)
+        (home / '.local/bin/fzf-rg').chmod(0o700)
     install_state.save(receipt)
     configure_login(machine, native=True)
     if shell != 'keep':

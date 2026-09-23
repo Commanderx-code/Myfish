@@ -94,6 +94,10 @@ in
     source = ./fzf-preview;
     executable = true;
   };
+  home.file.".local/bin/fzf-rg" = lib.mkIf (shell != "keep") {
+    source = ./fzf-rg;
+    executable = true;
+  };
   programs.fish = lib.mkIf (shell == "fish") {
     enable = true;
     interactiveShellInit = lib.mkAfter "fish_user_key_bindings";

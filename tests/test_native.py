@@ -137,6 +137,9 @@ class NativeTests(unittest.TestCase):
             run.assert_not_called()
             self.assertEqual(calls, [{'native': True}])
         self.assertTrue((self.home / '.config/fish/conf.d/commander-os.fish').is_file())
+        picker = self.home / '.local/bin/fzf-rg'
+        self.assertEqual(picker.read_bytes(), (ROOT / 'modules/fzf-rg').read_bytes())
+        self.assertTrue(os.access(picker, os.X_OK))
 
     def test_bash_ble_wraps_prompt_and_shell_bindings(self):
         self.machine['shell'] = 'bash'

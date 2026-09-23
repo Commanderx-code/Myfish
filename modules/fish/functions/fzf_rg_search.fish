@@ -14,46 +14,23 @@ function fzf_rg_search --description "Search text with ripgrep + fzf and open re
 
     test -z "$q"; and return 0
 
-    set -l results (
-        rg \
-            --line-number \
-            --column \
-            --no-heading \
-            --smart-case \
-            --hidden \
-            --color=always \
+    set -l pick (
+        "$HOME/.local/bin/fzf-rg" \
             --glob '!.git/*' \
             --glob '!node_modules/*' \
             --glob '!.cache/*' \
             --glob '!.local/share/Trash/*' \
             --glob '!.local/share/Steam/*' \
-            -- "$q" "$PWD" 2>/dev/null
+            -- "$q" "$PWD" | string split0
     )
 
-    if test (count $results) -eq 0
-        echo "No matches found for: $q"
-        return 0
-    end
-
-    set -l pick (
-        printf "%s\n" $results |
-        fzf \
-            --ansi \
-            --layout=reverse \
-            --border \
-            --delimiter ':' \
-            --preview='bat --style=numbers --color=always --highlight-line {2} --line-range :300 {1} 2>/dev/null' \
-            --preview-window='right,60%,nowrap' \
-            --bind='ctrl-/:toggle-preview'
-    )
-
-    test -z "$pick"; and return 0
-
-    set -l file (string split -m1 ':' -- "$pick")[1]
-    set -l line (string split -m2 ':' -- "$pick")[2]
+    test (count $pick) -eq 2; or return 0
+    set -l line "$pick[1]"
+    set -l file "$pick[2]"
+    string match -qr '^[1-9][0-9]*$' -- "$line"; or return 1
 
     if command -q nvim
-        commandline -r -- (string join ' ' -- nvim "+$line" (string escape -- "$file"))
+        commandline -r -- (string join ' ' -- (string escape -- nvim "+$line" -- "$file"))
         commandline -f execute
     else
         echo "$file:$line"
