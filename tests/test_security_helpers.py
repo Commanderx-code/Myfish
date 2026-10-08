@@ -154,9 +154,24 @@ function pwd; printf '/%s' "$TEST_MESSAGE"; end
 set -g cmd_duration 6001
 __done_ended 'ordinary command'
 '''
+        env = dict(self.env, KITTY_WINDOW_ID='1') if backend == 'kitty' else self.env
         return subprocess.run(['fish', '--no-config', '-i', '-c', code,
                                str(ROOT / 'modules/fish/conf.d/80-done.fish')],
-                              cwd=self.work, env=self.env, text=True, capture_output=True, timeout=20)
+                              cwd=self.work, env=env, text=True, capture_output=True, timeout=20)
+
+    def test_kitty_only_writes_encoded_data_to_the_terminal(self):
+        for message in ('ordinary directory', '100% %s %n \\x1b\\\\\\x1b]52;c;UFdORUQ=\\x07 \\e\\a',
+                        'raw \x1b\\\x1b]52;c;UFdORUQ=\x07 \x9c café\nnewline'):
+            with self.subTest(message=message):
+                self.log.unlink(missing_ok=True)
+                result = self.notification('kitty', 'title', message, 0)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertFalse(self.calls())
+                match = re.fullmatch(r'\x1b\]99;i=done:d=0:e=1;([A-Za-z0-9+/=]*)\x1b\\'
+                                     r'\x1b\]99;i=done:d=1:e=1:p=body;([A-Za-z0-9+/=]*)\x1b\\', result.stdout)
+                self.assertIsNotNone(match, repr(result.stdout))
+                self.assertEqual([base64.b64decode(v).decode() for v in match.groups()],
+                                 ['Done in 6s', '/' + message + '/ ordinary command'])
 
     def test_applescript_messages_are_separate_arguments(self):
         for sound in (0, 1):
@@ -198,3 +213,26 @@ __done_ended 'ordinary command'
                     scripts.append(re.sub(r"FromBase64String\('[A-Za-z0-9+/=]*'\)", "FromBase64String('DATA')", script))
         self.assertEqual(scripts[0], scripts[1])
         self.assertEqual(scripts[2], scripts[3])
+
+    def test_wifi_name_reaches_the_terminal_without_control_characters(self):
+        text = (ROOT / 'modules/fastfetch.jsonc').read_text()
+        modules = json.loads(text[text.index('\n{'):])['modules']
+        command = next(m['text'] for m in modules if isinstance(m, dict) and 'Wi-Fi' in m.get('key', ''))
+        ssid = self.home / 'ssid'
+        env = dict(self.env, TEST_SSID=str(ssid))
+        sources = {
+            'iwgetid': ("sys.stdout.buffer.write(Path(os.environ['TEST_SSID']).read_bytes() + b'\\n')", 'sys.exit(1)'),
+            'nmcli': ('sys.exit(1)', "sys.stdout.buffer.write(b'no:other\\nyes:' + Path(os.environ['TEST_SSID']).read_bytes() + b'\\n')"),
+        }
+        names = [('Home Net'.encode(), 'Home Net'.encode()), ('Café 咖啡 À ©'.encode(), 'Café 咖啡 À ©'.encode()),
+                 (b'Evil\x1b]0;PWNED\x07\x1b[2J\x7fNet', b'Evil]0;PWNED[2JNet'),
+                 (b'a\xc2\x9b2J\xc2\xc2\x9d\x9db\xc2\x1b\x9cc', b'a2Jbc'), (b'\x1b\x07', b'')]
+        for source, (iwgetid, nmcli) in sources.items():
+            self.mock('iwgetid', iwgetid)
+            self.mock('nmcli', nmcli)
+            for name, expected in names:
+                with self.subTest(source=source, name=name):
+                    ssid.write_bytes(name)
+                    result = subprocess.run(['/bin/sh', '-c', command], env=env, capture_output=True, timeout=20)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stdout, expected + b'\n' if expected else b'')
