@@ -29,7 +29,7 @@ package manager or opt into **Home Manager** for pinned packages and generations
 
 | | Included |
 | :--- | :--- |
-| **A recognizable prompt** | A shared Powerline-style Starship theme with directory, Git and clock segments. |
+| **A recognizable prompt** | A shared Powerline-style Starship theme with directory, Git and clock segments, in the Eldritch palette. |
 | **Icons that render** | JetBrainsMono Nerd Font installation and a grouped Fastfetch system overview. |
 | **Faster navigation** | zoxide, fzf file and text pickers, eza listings and directory shortcuts. |
 | **Persistent terminal sessions** | Zellij with Tokyo Night Storm, your selected shell and locked shortcuts; launch manually. |
@@ -119,6 +119,14 @@ or configure your desktop, bootloader or backup services.
 
 `{user}` inserts the account username. Custom text is printed literally. Disabling
 the greeting keeps Fastfetch enabled; `COMMANDER_QUIET=1` suppresses both for a session.
+
+### Recolour the prompt
+
+The prompt's colours are named in `modules/starship.toml` and defined once, in
+`[palettes.eldritch]` at the end of the file. Add another `[palettes.<name>]`
+table with the same names and point `palette = "<name>"` at it; the layout
+stays the same. Commander's dotfiles import this file and swap in the palette
+chosen with their `rice` command.
 
 ### Keep your preferences
 
