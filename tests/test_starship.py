@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,3 +51,14 @@ class StarshipTests(unittest.TestCase):
                     self.assertEqual(re.sub(r'\x1b\[[0-9;]*m', '', result.stdout).strip(), symbol)
                     if status != '0':
                         self.assertRegex(result.stdout, r'\x1b\[[0-9;]*31m')
+
+    def test_every_named_colour_is_in_each_palette(self):
+        text = (ROOT / 'modules/starship.toml').read_text()
+        config = tomllib.loads(text)
+        names = set(re.findall(r'(?:bg|fg):(\w+)', text))
+        self.assertIn(config['palette'], config['palettes'])
+        for name, palette in config['palettes'].items():
+            with self.subTest(palette=name):
+                self.assertLessEqual(names, set(palette))
+                for value in palette.values():
+                    self.assertRegex(value, r'^#[0-9a-f]{6}$')
