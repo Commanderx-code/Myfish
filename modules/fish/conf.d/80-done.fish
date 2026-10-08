@@ -258,8 +258,12 @@ if set -q __done_enabled
                     echo -e "\a" # bell sound
                 end
             else if set -q KITTY_WINDOW_ID
-                printf "\x1b]99;i=done:d=0;$title\x1b\\"
-                printf "\x1b]99;i=done:d=1:p=body;$message\x1b\\"
+                # Only base64's restricted alphabet reaches the terminal (OSC 99
+                # e=1), and only as a printf argument: text is never the format.
+                set -l title64 (printf '%s' "$title" | base64 | string join '')
+                set -l message64 (printf '%s' "$message" | base64 | string join '')
+                printf '\x1b]99;i=done:d=0:e=1;%s\x1b\\\\' "$title64"
+                printf '\x1b]99;i=done:d=1:e=1:p=body;%s\x1b\\\\' "$message64"
             else if type -q terminal-notifier # https://github.com/julienXX/terminal-notifier
                 if test "$__done_notify_sound" -eq 1
                     # pipe message into terminal-notifier to avoid escaping issues (https://github.com/julienXX/terminal-notifier/issues/134). fixes #140
