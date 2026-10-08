@@ -148,7 +148,7 @@ SOFTWARE.
             "type": "command",
             "key": "│ └󰖩 Wi-Fi",
             "keyColor": "green",
-            "text": "iwgetid -r 2>/dev/null || nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '$1==\"yes\"{print $2; exit}'"
+            "text": "{ iwgetid -r 2>/dev/null || nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '$1==\"yes\"{print $2; exit}'; } | LC_ALL=C tr -d '\\000-\\037\\177' | LC_ALL=C awk '{while (gsub(/\\302[\\200-\\237]/, \"\")); print}'"
         },
         {
             "type": "sound",
