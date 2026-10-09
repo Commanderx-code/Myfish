@@ -7,21 +7,21 @@ format = """
 [╭─](bg:user fg:prompt_text)\
 $python\
 $username\
-[](bg:directory fg:user)\
+[](bg:directory fg:user)\
 $directory\
-[](fg:directory bg:git)\
+[](fg:directory bg:git)\
 $git_branch\
 $git_status\
-[](fg:git bg:language)\
+[](fg:git bg:language)\
 $c\
 $golang\
 $java\
 $rust\
-[](fg:language bg:docker)\
+[](fg:language bg:docker)\
 $docker_context\
-[](fg:docker bg:time)\
+[](fg:docker bg:time)\
 $time\
-[](fg:time)
+[](fg:time)
 [╰─>](bg:user fg:prompt_text)\
 $character\
 $status\
@@ -69,11 +69,11 @@ format = "[ $time ]($style)"
 
 [git_branch]
 symbol = " "
-style = "bg:user fg:prompt_text"
+style = "bg:git fg:prompt_dark"
 format = "[ $symbol$branch ]($style)"
 
 [git_status]
-style = "bg:git fg:prompt_text"
+style = "bg:git fg:prompt_dark"
 format = "[$all_status$ahead_behind ]($style)"
 conflicted = ""
 ahead = "↑"
@@ -126,7 +126,7 @@ prompt_dark = "#212337"
 alert = "#f16c75"
 user = "#292e42"
 directory = "#3b4261"
-git = "#171928"
+git = "#7081d0"
 language = "#a48cf2"
 docker = "#04d1f9"
 time = "#9071f4"

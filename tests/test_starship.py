@@ -57,6 +57,8 @@ class StarshipTests(unittest.TestCase):
         config = tomllib.loads(text)
         names = set(re.findall(r'(?:bg|fg):(\w+)', text))
         self.assertIn(config['palette'], config['palettes'])
+        # Powerline separators (U+E0B0) join the segments; an editor can silently drop them.
+        self.assertEqual(config['format'].count('\ue0b0'), 6)
         for name, palette in config['palettes'].items():
             with self.subTest(palette=name):
                 self.assertLessEqual(names, set(palette))
