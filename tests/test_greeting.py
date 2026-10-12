@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from shell_support import require_shell
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import bootstrap
@@ -36,6 +38,7 @@ class GreetingTests(unittest.TestCase):
                 source = ROOT / ('modules/fish/conf.d/90-welcome.fish' if shell == 'fish' else 'modules/shell/common.sh')
                 for text, quiet in ((message, False), ('', False), (message, True)):
                     with self.subTest(shell=shell, text=text, quiet=quiet):
+                        require_shell(self, shell)
                         target.write_text(text + '\n')
                         run_env = dict(env, **({'COMMANDER_QUIET': '1'} if quiet else {}))
                         result = subprocess.run([executable, *flags, '-i', '-c', f'source "{source}"'], env=run_env, text=True, capture_output=True)

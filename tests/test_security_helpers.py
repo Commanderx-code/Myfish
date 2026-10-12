@@ -12,6 +12,8 @@ import sys
 import tempfile
 import unittest
 
+from shell_support import require_shell
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -79,6 +81,7 @@ fzf_rg_search
         for shell in ('fish', 'bash', 'zsh'):
             for name in names:
                 with self.subTest(shell=shell, name=name):
+                    require_shell(self, shell)
                     for previous in self.work.iterdir():
                         previous.unlink()
                     path = self.work / name
@@ -100,6 +103,7 @@ fzf_rg_search
         for shell in ('fish', 'bash', 'zsh'):
             for cancel in (False, True):
                 with self.subTest(shell=shell, cancel=cancel):
+                    require_shell(self, shell)
                     if cancel:
                         (self.work / 'match').write_text('needle')
                         self.env['TEST_CANCEL'] = '1'
@@ -125,6 +129,7 @@ fzf_rg_search
         try:
             for shell in ('fish', 'bash', 'zsh'):
                 with self.subTest(shell=shell):
+                    require_shell(self, shell)
                     self.log.unlink(missing_ok=True)
                     result = self.search(shell)
                     self.assertEqual(result.returncode, 0, result.stderr)
