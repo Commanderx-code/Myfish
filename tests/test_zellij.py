@@ -42,6 +42,7 @@ class ZellijTests(unittest.TestCase):
             self.assertIn('default_mode "locked"', config)
             self.assertIn('theme "tokyo-night-storm"', config)
             self.assertIn(f'default_shell {json.dumps(shell)}', config)
+            self.assertIn('env {\n    SHLVL 0\n}', config)
             for path, text in files.items():
                 if path.suffix in ('.fish', '.bash', '.zsh'):
                     self.assertNotIn('zellij', text)

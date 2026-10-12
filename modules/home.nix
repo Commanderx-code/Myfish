@@ -143,6 +143,9 @@ in
       default_mode = "locked";
       default_shell =
         if shell == "bash" then "${pkgs.bashInteractive}/bin/bash" else "${pkgs.${shell}}/bin/${shell}";
+      # A pane's shell is the top level there, so the prompt's nested-shell
+      # marker shows only for shells started inside a pane.
+      env.SHLVL = 0;
     };
   };
   programs.fzf = {
