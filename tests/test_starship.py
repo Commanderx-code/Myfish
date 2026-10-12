@@ -119,3 +119,13 @@ class StarshipTests(unittest.TestCase):
                     marker = segment.split(' ', 1)[1].strip()
                     self.assertEqual(marker, expected)
                     self.assertEqual(result.stderr, '')
+
+    def test_package_version_stays_off_the_input_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = dict(os.environ, STARSHIP_CONFIG=str(ROOT / 'modules/starship.toml'), STARSHIP_CACHE=tmp)
+            (Path(tmp) / 'package.json').write_text('{"name": "fixture", "version": "1.2.3"}\n')
+            result = subprocess.run(['starship', 'prompt'], cwd=tmp, env=env,
+                                    check=True, text=True, capture_output=True)
+            bar, entry = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', result.stdout).strip().splitlines()
+            self.assertIn('1.2.3', bar)
+            self.assertEqual(entry.strip(), '╰─ ❯')

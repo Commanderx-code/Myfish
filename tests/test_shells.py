@@ -4,6 +4,8 @@ import subprocess
 import tempfile
 import unittest
 
+from shell_support import require_shell
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -19,6 +21,7 @@ class ShellParityTests(unittest.TestCase):
     def test_bash_and_zsh_navigation_and_aliases(self):
         for shell in ['bash', 'zsh']:
             with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
+                require_shell(self, shell)
                 target = Path(directory) / 'with spaces'
                 result = self.run_shell(shell, '. "$1"; mkcd "$2" && pwd; alias ll', [target])
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -28,6 +31,7 @@ class ShellParityTests(unittest.TestCase):
     def test_failed_commit_never_pushes_in_either_shell(self):
         for shell in ['bash', 'zsh']:
             with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
+                require_shell(self, shell)
                 mock = Path(directory) / 'git'
                 mock.write_text('#!/bin/sh\ncase "$1" in commit) exit 7;; push) echo BAD_PUSH;; esac\n')
                 mock.chmod(0o700)
@@ -39,6 +43,7 @@ class ShellParityTests(unittest.TestCase):
     def test_file_picker_preserves_spaces(self):
         for shell in ['bash', 'zsh']:
             with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
+                require_shell(self, shell)
                 mock = Path(directory)
                 for name, text in {
                     'fd': '#!/bin/sh\nprintf "a file.txt\\0"\n',
@@ -55,6 +60,7 @@ class ShellParityTests(unittest.TestCase):
     def test_binding_adapters_load(self):
         for shell in ['bash', 'zsh']:
             with self.subTest(shell=shell):
+                require_shell(self, shell)
                 adapter = ROOT / 'modules/shell' / ('bash.sh' if shell == 'bash' else 'zsh.zsh')
                 code = '. "$1"; . "$2"; ' + ('bind -X' if shell == 'bash' else "bindkey '^P'")
                 result = self.run_shell(shell, code, [adapter])
