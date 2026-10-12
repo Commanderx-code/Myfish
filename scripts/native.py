@@ -238,7 +238,10 @@ unset commander_plugin
         if not zellij_config.exists() and not zellij_config.is_symlink():
             files[zellij_config] = ('// Start manually with zellij; Ctrl+G unlocks controls.\n'
                                     'theme "tokyo-night-storm"\ndefault_mode "locked"\n'
-                                    f'default_shell {json.dumps(shell)}\n')
+                                    f'default_shell {json.dumps(shell)}\n'
+                                    # A pane's shell is the top level there, so the prompt's
+                                    # nested-shell marker shows only for shells started inside it.
+                                    'env {\n    SHLVL 0\n}\n')
         files[home / '.local/bin/fzf-preview'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-preview').read_text()
         files[home / '.local/bin/fzf-rg'] = (Path(__file__).resolve().parents[1] / 'modules/fzf-rg').read_text()
         files[config / 'commander-os/starship.toml'] = (Path(__file__).resolve().parents[1] / 'modules/starship.toml').read_text()
