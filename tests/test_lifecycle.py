@@ -4,6 +4,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -284,3 +285,13 @@ class LifecycleTests(unittest.TestCase):
         for name in ('nix', 'nix-store', 'nix-env'):
             with self.subTest(name=name), patch.object(lifecycle.shutil, 'which', return_value=str(profile / 'bin' / name)):
                 self.assertEqual(lifecycle.nix_tool(name), str(store.resolve() / name))
+
+
+class MaintenanceFlakeTests(unittest.TestCase):
+    def test_maintenance_flake_uses_the_project_inputs(self):
+        # It is built with the project lock, which only applies to the same inputs.
+        root = Path(__file__).resolve().parents[1]
+        inputs = [sorted(re.findall(r'url = "(github:[^"]+)"', (root / path).read_text()))
+                  for path in ('flake.nix', 'scripts/maintenance.nix')]
+        self.assertEqual(len(inputs[0]), 2)
+        self.assertEqual(*inputs)

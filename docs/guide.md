@@ -195,7 +195,8 @@ Targets: x86_64 and aarch64 Linux, plus Intel and Apple Silicon macOS.
 CI checks Linux x86_64 and both Mac architectures without activating a home.
 Clean-machine installation, graphical terminal behavior, Linux ARM and
 cross-distro activation still need manual testing. Intel Home Manager support
-is limited by the pinned Nixpkgs release; future Nixpkgs updates may drop it.
+ends with the pinned Nixpkgs 26.05 release: later releases dropped Intel Macs, and
+26.05 gets security fixes until the end of 2026.
 The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash),
 with independently implemented installers and selectable shells. Automatic terminal font selection and desktop
 integration remain future work.
