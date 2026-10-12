@@ -22,12 +22,20 @@ alias mv 'mv -i'
 if command -q trash
     alias rm 'trash -v'
 end
-alias cat bat
+# Replace a command only when its replacement is here; the c-prefixed
+# names always reach the original.
 alias ccat 'command cat'
-alias grep rg
 alias cgrep 'command grep'
-alias find fd
 alias cfind 'command find'
+if command -q bat; or functions -q bat
+    alias cat bat
+end
+if command -q rg
+    alias grep rg
+end
+if command -q fd; or functions -q fd
+    alias find fd
+end
 alias cls clear
 if test (uname -s) = Darwin
     alias psa 'ps aux'
