@@ -1,4 +1,6 @@
 status is-interactive; or return
+# Without eza, ls and tree keep their usual meaning.
+command -q eza; or return
 # ---------------------------------------------------------
 # EZA - Modern ls Replacement
 # ---------------------------------------------------------
@@ -16,7 +18,7 @@ ex=1;32:\
 *.png=1;35"
 
 # Replacements
-alias ls="eza --icons --group-directories-first --colour=always"
+alias ls="eza --icons --group-directories-first"
 alias ll="eza -lh --icons --group-directories-first --time-style=long-iso"
 alias la="eza -lha --icons --group-directories-first"
 alias tree="eza --tree --level=2 --icons"

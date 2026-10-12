@@ -1,4 +1,4 @@
-function __commander_editor
+function __commander_editor --description 'Print the first available editor'
     for editor in nvim vim nano vi
         if command -q $editor
             echo $editor

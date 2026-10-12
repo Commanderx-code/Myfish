@@ -103,7 +103,12 @@ if ! command -v bat >/dev/null 2>&1 && command -v batcat >/dev/null 2>&1; then a
 if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then alias fd=fdfind; fi
 alias cp='cp -i' mv='mv -i'
 if command -v trash >/dev/null 2>&1; then alias rm='trash -v'; fi
-alias cat=bat ccat='command cat' grep=rg cgrep='command grep' find=fd cfind='command find'
+# Replace a command only when its replacement is here; the c-prefixed
+# names always reach the original.
+alias ccat='command cat' cgrep='command grep' cfind='command find'
+if command -v bat >/dev/null 2>&1; then alias cat=bat; fi
+if command -v rg >/dev/null 2>&1; then alias grep=rg; fi
+if command -v fd >/dev/null 2>&1; then alias find=fd; fi
 alias cls=clear
 if [ "$(uname -s)" = Darwin ]; then
   alias psa='ps aux' mountedinfo='df -h'
@@ -115,13 +120,15 @@ alias gs='git status' ga='git add' gc='git commit' gp='git push' gl='git pull'
 if command -v lazygit >/dev/null 2>&1; then alias lg=lazygit; fi
 alias ..='cd ..' ...='cd ../..' ....='cd ../../..' .....='cd ../../../..' bd='cd -' home='cd ~'
 alias cdi=fcd fzf_open_file=fdi fzf_rg_search=rgi
+if command -v eza >/dev/null 2>&1; then
 export EZA_COLORS='da=1;34:di=1;36:fi=0;37:ex=1;32:*.zip=1;31:*.tar=1;31:*.gz=1;31:*.jpg=1;35:*.png=1;35'
-alias ls='eza --icons --group-directories-first --colour=always'
+alias ls='eza --icons --group-directories-first'
 alias ll='eza -lh --icons --group-directories-first --time-style=long-iso'
 alias la='eza -lha --icons --group-directories-first' tree='eza --tree --level=2 --icons'
 alias lx='eza -lh --sort=extension --icons' lk='eza -lh --sort=size --icons' lt='eza -lh --sort=modified --icons'
 alias ldir='eza -l --icons --only-dirs' lf='eza -l --icons --only-files'
 alias lgit='eza -l --git --icons' l1='eza -1 --icons' lr='eza -R --icons'
+fi
 _commander_finder=fd
 command -v fd >/dev/null 2>&1 || _commander_finder=fdfind
 export FZF_DEFAULT_COMMAND="$_commander_finder --type f --hidden --exclude .git --exclude node_modules --exclude .cache"

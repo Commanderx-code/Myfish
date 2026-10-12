@@ -1,4 +1,4 @@
-function __fzf_starstar_tab
+function __fzf_starstar_tab --description 'Tab: expand a trailing ** with fzf, otherwise complete'
     set -l token (commandline -t)
     if string match -qr '\*\*$' -- "$token"
         commandline -t -- (string replace -r '\*\*$' '' -- "$token")
