@@ -1,0 +1,19 @@
+# Weekly pull requests that keep pinned dependencies current.
+version: 2
+updates:
+  # The workflows pin each action to a commit.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+  # flake.lock: the package snapshot installs are built from.
+  - package-ecosystem: nix
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      flake-inputs:
+        patterns: ['*']
