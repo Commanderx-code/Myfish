@@ -23,14 +23,14 @@ $c\
 $golang\
 $java\
 $rust\
+$package\
 [](fg:language bg:docker)\
 $docker_context\
 [](fg:docker bg:time)\
 $time\
 [](fg:time)
 $character\
-$status\
-$package
+$status
 """
 
 command_timeout = 1200
@@ -157,6 +157,8 @@ format = "[ $symbol$context ]($style) "
 
 [package]
 symbol = "󰏗 "
+style = "bg:language fg:prompt_dark"
+format = "[ $symbol$version ]($style)"
 
 # Eldritch (https://github.com/eldritch-theme), mapped onto the prompt's segments.
 [palettes.eldritch]
