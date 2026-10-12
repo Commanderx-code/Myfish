@@ -1,19 +1,18 @@
-function fzf_open_file --description "FZF pick a file and open in nvim"
+function fzf_open_file --description "Pick a file with fzf and open it in an editor"
     if not command -q fzf
-        echo "fzf not installed"
+        echo "fzf not installed" >&2
         return 1
     end
 
     if not command -q fd; and not command -q fdfind
-        echo "fd not installed"
+        echo "fd not installed" >&2
         return 1
     end
 
     set -l preview "$HOME/.local/bin/fzf-preview"
 
     if not test -x "$preview"
-        echo "fzf preview script missing:"
-        echo "$preview"
+        echo "fzf preview script missing: $preview" >&2
         return 1
     end
 

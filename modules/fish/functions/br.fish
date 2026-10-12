@@ -1,4 +1,4 @@
-function br --wraps broot
+function br --wraps broot --description 'Run broot and follow it when it changes directory'
     command -q broot; or begin
         echo 'Install broot to use br.' >&2
         return 1
