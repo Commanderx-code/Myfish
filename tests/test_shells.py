@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -23,10 +24,33 @@ class ShellParityTests(unittest.TestCase):
             with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
                 require_shell(self, shell)
                 target = Path(directory) / 'with spaces'
-                result = self.run_shell(shell, '. "$1"; mkcd "$2" && pwd; alias ll', [target])
+                # The listing aliases exist only when eza does, so supply one.
+                tools = Path(directory) / 'bin'
+                tools.mkdir()
+                (tools / 'eza').write_text('#!/bin/sh\n')
+                (tools / 'eza').chmod(0o700)
+                result = self.run_shell(shell, '. "$1"; mkcd "$2" && pwd; alias ll', [target],
+                                        env={'PATH': str(tools) + os.pathsep + os.environ['PATH']})
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn(str(target), result.stdout)
                 self.assertIn('--icons', result.stdout)
+
+    def test_commands_keep_their_meaning_without_the_replacement(self):
+        for shell in ['bash', 'zsh']:
+            with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
+                require_shell(self, shell)
+                # A PATH with the shell's own basics but none of eza, bat, rg or fd.
+                tools = Path(directory)
+                executable = os.environ.get('COMMANDER_TEST_BASH', shell) if shell == 'bash' else shell
+                (tools / shell).symlink_to(shutil.which(executable))
+                for name in ('uname', 'whoami', 'cat', 'date'):
+                    (tools / name).symlink_to(shutil.which(name))
+                result = self.run_shell(shell, '. "$1"; alias ls cat grep find; alias ccat cgrep cfind',
+                                        env={'PATH': str(tools)})
+                for name in ('ls', 'cat', 'grep', 'find'):
+                    self.assertNotRegex(result.stdout, rf'(?m)^(alias )?{name}=')
+                for name in ('ccat', 'cgrep', 'cfind'):
+                    self.assertRegex(result.stdout, rf'(?m)^(alias )?{name}=')
 
     def test_failed_commit_never_pushes_in_either_shell(self):
         for shell in ['bash', 'zsh']:

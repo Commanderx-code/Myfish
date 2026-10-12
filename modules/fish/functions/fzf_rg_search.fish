@@ -1,11 +1,11 @@
-function fzf_rg_search --description "Search text with ripgrep + fzf and open result in nvim"
+function fzf_rg_search --description "Search text with ripgrep + fzf and open the result in an editor"
     if not command -q rg
-        echo "ripgrep is not installed"
+        echo "ripgrep is not installed" >&2
         return 1
     end
 
     if not command -q fzf
-        echo "fzf is not installed"
+        echo "fzf is not installed" >&2
         return 1
     end
 
@@ -29,10 +29,7 @@ function fzf_rg_search --description "Search text with ripgrep + fzf and open re
     set -l file "$pick[2]"
     string match -qr '^[1-9][0-9]*$' -- "$line"; or return 1
 
-    if command -q nvim
-        commandline -r -- (string join ' ' -- (string escape -- nvim "+$line" -- "$file"))
-        commandline -f execute
-    else
-        echo "$file:$line"
-    end
+    set -l editor (__commander_editor); or return
+    commandline -r -- (string join ' ' -- (string escape -- $editor "+$line" -- "$file"))
+    commandline -f execute
 end
