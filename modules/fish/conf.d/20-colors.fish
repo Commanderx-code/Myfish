@@ -1,6 +1,8 @@
 status is-interactive; or return
 # Syntax colors from the personal Fish theme.
-set --global fish_color_autosuggestion brblack
+# A fixed grey: "brblack" follows the terminal palette, and in some (Eldritch)
+# it is a blue-purple that reads like typed text rather than a suggestion.
+set --global fish_color_autosuggestion 7c7f8a
 set --global fish_color_cancel -r
 set --global fish_color_command blue
 set --global fish_color_comment red
