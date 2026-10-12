@@ -21,7 +21,13 @@ class FishTests(unittest.TestCase):
             for path in (home / '.config/fish').rglob('*'):
                 if path.is_dir():
                     path.chmod(0o700)
-            env = dict(os.environ, HOME=str(home), XDG_CONFIG_HOME=str(home / '.config'),
+            # The listing aliases exist only when eza does, so supply one.
+            tools = home / 'bin'
+            tools.mkdir()
+            (tools / 'eza').write_text('#!/bin/sh\n')
+            (tools / 'eza').chmod(0o700)
+            env = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ['PATH'],
+                       HOME=str(home), XDG_CONFIG_HOME=str(home / '.config'),
                        XDG_DATA_HOME=str(home / '.local/share'), XDG_CACHE_HOME=str(home / '.cache'),
                        XDG_STATE_HOME=str(home / '.local/state'), COMMANDER_QUIET='1', TERM='xterm-256color')
             result = subprocess.run(['fish', '-i', '-c',

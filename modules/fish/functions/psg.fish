@@ -1,6 +1,6 @@
-function psg
+function psg --description 'List running processes matching a pattern'
     if test (count $argv) -lt 1
-        echo "Usage: psg <pattern>"
+        echo "Usage: psg <pattern>" >&2
         return 1
     end
 
