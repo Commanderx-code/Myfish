@@ -1,9 +1,11 @@
 {
   description = "Myfish: a portable Linux and macOS home environment";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    # The 26.05 release is the last that supports Intel Macs (x86_64-darwin);
+    # it receives security fixes until the end of 2026.
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-26.05-darwin";
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
