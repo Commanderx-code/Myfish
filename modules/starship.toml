@@ -7,11 +7,17 @@ format = """
 [╭─](bg:user fg:prompt_text)\
 $python\
 $username\
+$nix_shell\
+${env_var.NVIM}\
+${env_var.YAZI_LEVEL}\
+${env_var.NNNLVL}\
+$shlvl\
 [](bg:directory fg:user)\
 $directory\
 [](fg:directory bg:git)\
 $git_branch\
 $git_status\
+$git_state\
 [](fg:git bg:language)\
 $c\
 $golang\
@@ -22,7 +28,6 @@ $docker_context\
 [](fg:docker bg:time)\
 $time\
 [](fg:time)
-[╰─>](bg:user fg:prompt_text)\
 $character\
 $status\
 $package
@@ -36,11 +41,40 @@ style_user = "bg:user fg:prompt_text"
 style_root = "bg:user fg:alert"
 format = "[$user ]($style)"
 
-[character]
-error_symbol = " [×](bold red) "
-success_symbol = " [λ](green bold) "
+# Subshell markers sit beside the username and show only inside one: a Nix
+# shell by name, a shell opened from Neovim, Yazi or nnn, and how deep any
+# other nested shell is. `exit` there leaves the subshell, not the terminal.
+[nix_shell]
+symbol = " "
+style = "bg:user fg:docker"
+heuristic = false
+format = "[$symbol$name ]($style)"
 
-# The character module shows a red × after an unsuccessful command.
+[env_var.NVIM]
+style = "bg:user fg:docker"
+format = "[nvim ]($style)"
+
+[env_var.YAZI_LEVEL]
+style = "bg:user fg:docker"
+format = "[yazi ]($style)"
+
+[env_var.NNNLVL]
+style = "bg:user fg:docker"
+format = "[nnn ]($style)"
+
+[shlvl]
+disabled = false
+threshold = 2
+symbol = "↕"
+style = "bg:user fg:docker bold"
+format = "[$symbol$shlvl ]($style)"
+
+# The connector is part of the character, so it turns red along with the ×
+# after an unsuccessful command.
+[character]
+error_symbol = "[╰─](bg:user fg:alert) [×](bold red) "
+success_symbol = "[╰─](bg:user fg:prompt_text) [❯](green bold) "
+
 # Keep detailed exit codes and pipeline labels out of the prompt.
 [status]
 disabled = true
@@ -85,6 +119,11 @@ modified = "!"
 staged = "+"
 renamed = "»"
 deleted = "×"
+
+# Shown only mid-operation: REBASING 2/5, MERGING, CHERRY-PICKING…
+[git_state]
+style = "bg:git fg:prompt_dark bold"
+format = "[$state( $progress_current/$progress_total) ]($style)"
 
 [c]
 symbol = " "
