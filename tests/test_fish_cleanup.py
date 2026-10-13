@@ -40,16 +40,21 @@ class FishCleanupTests(unittest.TestCase):
         self.env['TEST_PICK'] = str(target)
         self.mock('fd', 'printf "%s\\0" "$TEST_PICK"')
         self.mock('fzf', '/bin/cat')
-        self.mock('nvim', 'printf "%s" "$1"')
-        result = self.run_fish('''function commandline
+        # The editor must receive the file after --, never as an option.
+        self.mock('nvim', '[ "$1" = -- ] && [ "$#" -eq 2 ] && printf "%s" "$2"')
+        picker = '''function commandline
     if test "$argv[1]" = -r
         eval "$argv[3]"
     end
 end
 fdi
-''')
+'''
+        result = self.run_fish(picker)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, str(target))
+        self.env['TEST_PICK'] = '-c:quit'
+        result = self.run_fish(picker)
+        self.assertEqual(result.stdout, '-c:quit')
 
     def test_environment_preserves_overrides_without_universal_path_writes(self):
         self.env.update(EDITOR='custom-editor', VISUAL='custom-visual', BAT_PAGER='custom-pager')
