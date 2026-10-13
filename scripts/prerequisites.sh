@@ -6,15 +6,21 @@ confirm_install() {
   [[ "$answer" == y || "$answer" == Y || "$answer" == yes ]]
 }
 
+# Intel Macs are no longer supported: Nixpkgs dropped them after its 26.05 release.
+require_supported_mac() {
+  [[ $(uname -s) == Darwin && $(uname -m) == x86_64 ]] || return 0
+  echo 'Intel Macs are not supported; an Apple Silicon Mac or Linux is required.' >&2
+  return 1
+}
+
 # Homebrew bootstrap is intentionally macOS-only, including when brew exists on Linux.
 load_homebrew() {
   [[ $(uname -s) == Darwin ]] || return 1
   local brew_path candidate
   brew_path=$(command -v brew || true)
   if [[ -z "$brew_path" ]]; then
-    for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
-      if [[ -x "$candidate" ]]; then brew_path=$candidate; break; fi
-    done
+    candidate=/opt/homebrew/bin/brew
+    if [[ -x "$candidate" ]]; then brew_path=$candidate; fi
   fi
   [[ -n "$brew_path" ]] || return 1
   local environment
