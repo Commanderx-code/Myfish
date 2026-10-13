@@ -129,16 +129,19 @@ class ShellParityTests(unittest.TestCase):
                 require_shell(self, shell)
                 mock = Path(directory)
                 for name, text in {
-                    'fd': '#!/bin/sh\nprintf "a file.txt\\0"\n',
+                    'fd': '#!/bin/sh\nprintf "%s\\0" "$TEST_PICK"\n',
                     'fzf': '#!/bin/sh\ncat\n',
                     'nvim': '#!/bin/sh\nprintf "picked:%s\\n" "$@"\n',
                 }.items():
                     (mock / name).write_text(text)
                     (mock / name).chmod(0o700)
-                result = self.run_shell(shell, '. "$1"; fdi',
-                                        env={'PATH': directory + os.pathsep + os.environ['PATH']})
-                self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn('picked:a file.txt', result.stdout)
+                # The second name must reach the editor after --, not as an option.
+                for name in ('a file.txt', '-c:quit'):
+                    result = self.run_shell(shell, '. "$1"; fdi',
+                                            env={'PATH': directory + os.pathsep + os.environ['PATH'],
+                                                 'TEST_PICK': name})
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn('picked:--\npicked:' + name, result.stdout)
 
     def test_binding_adapters_load(self):
         for shell in ['bash', 'zsh']:
