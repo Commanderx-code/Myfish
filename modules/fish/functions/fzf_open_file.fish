@@ -37,6 +37,7 @@ function fzf_open_file --description "Pick a file with fzf and open it in an edi
     test (count $file) -eq 1; or return 0
 
     set -l editor (__commander_editor); or return
-    commandline -r -- (string join ' ' -- $editor (string escape -- $file))
+    # The -- keeps a file whose name starts with - or + from being read as an editor option.
+    commandline -r -- (string join ' ' -- $editor -- (string escape -- $file))
     commandline -f execute
 end
