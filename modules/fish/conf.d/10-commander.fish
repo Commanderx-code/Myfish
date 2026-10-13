@@ -17,34 +17,6 @@ if not command -q fd; and command -q fdfind
         command fdfind $argv
     end
 end
-alias cp 'cp -i'
-alias mv 'mv -i'
-if command -q trash
-    alias rm 'trash -v'
-end
-# Replace a command only when its replacement is here; the c-prefixed
-# names always reach the original.
-alias ccat 'command cat'
-alias cgrep 'command grep'
-alias cfind 'command find'
-if command -q bat; or functions -q bat
-    alias cat bat
-end
-if command -q rg
-    alias grep rg
-end
-if command -q fd; or functions -q fd
-    alias find fd
-end
-alias cls clear
-if test (uname -s) = Darwin
-    alias psa 'ps aux'
-    alias mountedinfo 'df -h'
-else
-    alias psa 'ps auxf'
-    alias mountedinfo 'df -hT'
-end
-alias da 'date "+%Y-%m-%d %A %T %Z"'
 alias gs 'git status'
 alias ga 'git add'
 alias gc 'git commit'
@@ -53,13 +25,6 @@ alias gl 'git pull'
 if command -q lazygit
     alias lg lazygit
 end
-abbr -a .. 'cd ..'
-abbr -a ... 'cd ../..'
-abbr -a .... 'cd ../../..'
-abbr -a ..... 'cd ../../../..'
-abbr -a bd 'cd -'
-abbr -a home 'cd ~'
-
 # Search defaults; no forced sixel output unless the user opens a preview.
 set -l finder fd
 command -q fd; or set finder fdfind
