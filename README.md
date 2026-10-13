@@ -96,13 +96,12 @@ use the [maintenance menu](#update-or-uninstall) when changing how you manage a 
 | Debian / Ubuntu family | apt | Linux x86_64 CI on Ubuntu |
 | Fedora family | dnf | Package-planning tests |
 | Arch family | pacman | Package-planning tests |
-| macOS — Apple Silicon & Intel | Homebrew | CI on both Mac architectures |
+| macOS — Apple Silicon | Homebrew | CI on Apple Silicon |
 
 CI runs tests and Home Manager builds without activating a home. Clean-machine
 installation, desktop behavior, Linux ARM and cross-distro activation still need
 manual testing. Automatic Nix setup on Linux requires systemd with SELinux disabled;
-macOS must meet Homebrew’s requirements. Intel Home Manager support lasts as long as
-the pinned Nixpkgs 26.05 release, which gets security fixes until the end of 2026. [Platform details →](docs/guide.md#system-prerequisites)
+macOS must meet Homebrew’s requirements. Intel Macs are not supported. [Platform details →](docs/guide.md#system-prerequisites)
 
 Myfish configures a terminal environment; it does not install an operating system
 or configure your desktop, bootloader or backup services.

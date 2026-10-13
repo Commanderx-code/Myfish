@@ -102,7 +102,7 @@ package installation happen only after the displayed installation plan is accept
 ### macOS
 
 Run the same installer as your normal account. On **macOS only**, it checks for
-Homebrew (including `/opt/homebrew` on Apple Silicon and `/usr/local` on Intel).
+Homebrew in `/opt/homebrew`. Intel Macs are not supported.
 If missing, it offers the [official Homebrew installer](https://docs.brew.sh/Installation),
 which may request administrator access and Xcode Command Line Tools. Existing
 Homebrew installations are reused. `--no-install` never bootstraps Homebrew.
@@ -191,12 +191,11 @@ nix develop --command shellcheck uninstall.sh install.sh scripts/prerequisites.s
 nix flake check
 ```
 
-Targets: x86_64 and aarch64 Linux, plus Intel and Apple Silicon macOS.
-CI checks Linux x86_64 and both Mac architectures without activating a home.
+Targets: x86_64 and aarch64 Linux, plus Apple Silicon macOS.
+CI checks Linux x86_64 and Apple Silicon macOS without activating a home.
 Clean-machine installation, graphical terminal behavior, Linux ARM and
-cross-distro activation still need manual testing. Intel Home Manager support
-ends with the pinned Nixpkgs 26.05 release: later releases dropped Intel Macs, and
-26.05 gets security fixes until the end of 2026.
+cross-distro activation still need manual testing. Intel Macs are not
+supported: Nixpkgs dropped them after its 26.05 release.
 The setup flow is inspired by [ChrisTitusTech/mybash](https://github.com/ChrisTitusTech/mybash),
 with independently implemented installers and selectable shells. Automatic terminal font selection and desktop
 integration remain future work.

@@ -20,7 +20,6 @@ class MacTests(unittest.TestCase):
 
     def test_architecture_detection(self):
         for os_name, cpu, expected in [('Darwin', 'arm64', 'aarch64-darwin'),
-                                       ('Darwin', 'x86_64', 'x86_64-darwin'),
                                        ('Linux', 'aarch64', 'aarch64-linux')]:
             with patch.object(host.platform, 'system', return_value=os_name), patch.object(host.platform, 'machine', return_value=cpu):
                 self.assertEqual(host.system(), expected)

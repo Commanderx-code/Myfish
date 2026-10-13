@@ -57,3 +57,13 @@ install_packages apt-get python3
         self.assertEqual(result.returncode, 8)
         self.assertIn('apt-get update', result.stdout)
         self.assertNotIn('apt-get install', result.stdout)
+
+    def test_intel_macs_are_refused(self):
+        for kernel, cpu, supported in [('Darwin', 'x86_64', False), ('Darwin', 'arm64', True), ('Linux', 'x86_64', True)]:
+            with self.subTest(kernel=kernel, cpu=cpu):
+                result = subprocess.run(['bash', '-eu', '-c', 'kernel=$2 cpu=$3\n'
+                                         'uname() { if [[ "$1" == -m ]]; then echo "$cpu"; else echo "$kernel"; fi; }\n'
+                                         'source "$1"\nrequire_supported_mac', 'test', str(HELPER), kernel, cpu],
+                                        text=True, capture_output=True)
+                self.assertEqual(result.returncode == 0, supported, result.stderr)
+                self.assertEqual('Intel Macs are not supported' in result.stderr, not supported)
