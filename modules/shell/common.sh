@@ -65,7 +65,12 @@ extract() {
     *.gz) command gunzip -- "$archive" ;;
     *.bz2) command bunzip2 -- "$archive" ;;
     *.xz) command unxz -- "$archive" ;;
-    *.7z|*.rar) if command -v 7z >/dev/null 2>&1; then command 7z x "$archive"; else command 7zz x "$archive"; fi ;;
+    *.7z|*.rar)
+      # unrar handles every RAR version; 7-Zip covers the rest.
+      if [ "${archive##*.}" = rar ] && command -v unrar >/dev/null 2>&1; then command unrar x "$archive"
+      elif command -v 7z >/dev/null 2>&1; then command 7z x "$archive"
+      elif command -v 7zz >/dev/null 2>&1; then command 7zz x "$archive"
+      else echo "Install 7-Zip to extract $archive" >&2; return 1; fi ;;
     *) echo "Unsupported archive: $archive" >&2; return 1 ;;
   esac
 }
