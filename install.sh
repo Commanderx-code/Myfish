@@ -37,6 +37,7 @@ while (($#)); do
   esac
 done
 case $(uname -s) in Linux|Darwin) ;; *) echo 'Linux and macOS are supported.' >&2; exit 1 ;; esac
+require_supported_mac || exit 1
 ((EUID != 0)) || { echo 'Run as your normal user, without sudo.' >&2; exit 1; }
 if [[ -z "$backend" ]]; then
   if [[ -t 0 ]]; then

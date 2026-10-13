@@ -27,8 +27,8 @@ def validate(machine):
         raise ValueError('Invalid username')
     if not isinstance(machine['homeDirectory'], str) or not machine['homeDirectory'].startswith('/'):
         raise ValueError('homeDirectory must be an absolute path')
-    if machine['system'] not in ('x86_64-linux', 'aarch64-linux', 'x86_64-darwin', 'aarch64-darwin'):
-        raise ValueError('Supported systems: x86_64/aarch64 Linux and macOS')
+    if machine['system'] not in ('x86_64-linux', 'aarch64-linux', 'aarch64-darwin'):
+        raise ValueError('Supported systems: x86_64/aarch64 Linux and Apple Silicon macOS')
     if not isinstance(machine['features'], dict) or set(machine['features']) != set(FEATURES):
         raise ValueError('features must contain fish, neovim, development')
     if any(type(v) is not bool for v in machine['features'].values()):
