@@ -39,7 +39,8 @@ fdi() {
   IFS= read -r -d '' selected < <(_commander_fd --type f --hidden --exclude .git --exclude node_modules --print0 |
     fzf --read0 --print0 --preview "$preview" --preview-window 'right,60%,nowrap') || return 0
   editor=$(_commander_editor) || return
-  "$editor" "$selected"
+  # The -- keeps a file whose name starts with - or + from being read as an editor option.
+  "$editor" -- "$selected"
 }
 rgi() {
   local query filename line editor
