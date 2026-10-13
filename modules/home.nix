@@ -56,7 +56,7 @@ in
     ]
     ++ lib.optionals (shell == "bash") [ pkgs.blesh ];
   home.sessionPath = lib.optionals pkgs.stdenv.isDarwin [
-    (if pkgs.stdenv.hostPlatform.isAarch64 then "/opt/homebrew/bin" else "/usr/local/bin")
+    "/opt/homebrew/bin"
   ];
   home.file."Library/Fonts/Commander-os" = lib.mkIf pkgs.stdenv.isDarwin {
     source = "${pkgs.nerd-fonts.jetbrains-mono}/share/fonts/truetype/NerdFonts/JetBrainsMono";
