@@ -52,6 +52,65 @@ class ShellParityTests(unittest.TestCase):
                 for name in ('ccat', 'cgrep', 'cfind'):
                     self.assertRegex(result.stdout, rf'(?m)^(alias )?{name}=')
 
+    def test_extract_picks_the_archive_tool(self):
+        # Each stand-in tool reports its own name, so the output shows which one ran.
+        cases = [('a.rar', ('unrar', '7z'), 'unrar x'), ('a.rar', ('7z',), '7z x'),
+                 ('a.rar', ('7zz',), '7zz x'), ('a.7z', ('unrar', '7z'), '7z x')]
+        for shell in ['fish', 'bash', 'zsh']:
+            for name, available, expected in cases:
+                with self.subTest(shell=shell, archive=name, tools=available), \
+                        tempfile.TemporaryDirectory() as directory:
+                    require_shell(self, shell)
+                    tools = Path(directory) / 'bin'
+                    tools.mkdir()
+                    executable = os.environ.get('COMMANDER_TEST_BASH', shell) if shell == 'bash' else shell
+                    (tools / shell).symlink_to(shutil.which(executable))
+                    for basic in ('uname', 'whoami', 'realpath'):
+                        (tools / basic).symlink_to(shutil.which(basic))
+                    for tool in available:
+                        (tools / tool).write_text(f'#!/bin/sh\necho "{tool} $1"\n')
+                        (tools / tool).chmod(0o700)
+                    archive = Path(directory) / name
+                    archive.touch()
+                    env = dict(os.environ, PATH=str(tools), COMMANDER_QUIET='1')
+                    if shell == 'fish':
+                        command = [str(tools / shell), '--no-config', '-c', 'source $argv[1]; extract $argv[2]',
+                                   str(ROOT / 'modules/fish/functions/extract.fish'), str(archive)]
+                    else:
+                        flags = ['--noprofile', '--norc'] if shell == 'bash' else ['-f']
+                        command = [str(tools / shell), *flags, '-i', '-c', '. "$1"; extract "$2"', 'test',
+                                   str(ROOT / 'modules/shell/common.sh'), str(archive)]
+                    result = subprocess.run(command, env=env, text=True, capture_output=True)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn(expected, result.stdout)
+
+    def test_extract_reports_a_missing_tool_and_bad_input(self):
+        for shell in ['fish', 'bash', 'zsh']:
+            with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
+                require_shell(self, shell)
+                tools = Path(directory) / 'bin'
+                tools.mkdir()
+                executable = os.environ.get('COMMANDER_TEST_BASH', shell) if shell == 'bash' else shell
+                (tools / shell).symlink_to(shutil.which(executable))
+                for basic in ('uname', 'whoami', 'realpath'):
+                    (tools / basic).symlink_to(shutil.which(basic))
+                env = dict(os.environ, PATH=str(tools), COMMANDER_QUIET='1')
+                for name, message in [('a.7z', 'Install 7-Zip'), ('a.txt', 'Unsupported archive'),
+                                      ('missing.zip', 'Usage: extract')]:
+                    archive = Path(directory) / name
+                    if not name.startswith('missing'):
+                        archive.touch()
+                    if shell == 'fish':
+                        command = [str(tools / shell), '--no-config', '-c', 'source $argv[1]; extract $argv[2]',
+                                   str(ROOT / 'modules/fish/functions/extract.fish'), str(archive)]
+                    else:
+                        flags = ['--noprofile', '--norc'] if shell == 'bash' else ['-f']
+                        command = [str(tools / shell), *flags, '-i', '-c', '. "$1"; extract "$2"', 'test',
+                                   str(ROOT / 'modules/shell/common.sh'), str(archive)]
+                    result = subprocess.run(command, env=env, text=True, capture_output=True)
+                    self.assertEqual(result.returncode, 1, result.stdout)
+                    self.assertIn(message, result.stderr)
+
     def test_failed_commit_never_pushes_in_either_shell(self):
         for shell in ['bash', 'zsh']:
             with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:

@@ -16,10 +16,16 @@ function extract --description 'Extract an archive into the current directory'
         case '*.xz'
             command unxz -- "$archive"
         case '*.7z' '*.rar'
-            if command -q 7z
+            # unrar handles every RAR version; 7-Zip covers the rest.
+            if string match -q '*.rar' -- "$archive"; and command -q unrar
+                command unrar x "$archive"
+            else if command -q 7z
                 command 7z x "$archive"
-            else
+            else if command -q 7zz
                 command 7zz x "$archive"
+            else
+                echo "Install 7-Zip to extract $archive" >&2
+                return 1
             end
         case '*'
             echo "Unsupported archive: $archive" >&2
