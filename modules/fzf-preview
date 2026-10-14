@@ -53,6 +53,18 @@ show_image() {
     fi
 }
 
+# ffmpeg and ffprobe may follow references inside a container to other files
+# or network URLs. The preview reads plain local files only, within a time limit.
+media() {
+    local tool=$1
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout 15 "$tool" -protocol_whitelist file "$@"
+    else
+        "$tool" -protocol_whitelist file "$@"
+    fi
+}
+
 # One frame from a video, cached by path, size and modification time.
 video_frame() {
     local video=$1 cache key duration seek
@@ -64,10 +76,10 @@ video_frame() {
     [ -s "$frame" ] && return 0
     mkdir -p "$cache" || return 1
     # A tenth of the way in, at most 30 s, skips title cards; a short clip starts at 0.
-    duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$video" 2>/dev/null)
+    duration=$(media ffprobe -v error -show_entries format=duration -of csv=p=0 "$video" 2>/dev/null)
     seek=$(awk -v d="${duration:-0}" 'BEGIN { s = d / 10; if (s > 30) s = 30; printf "%.2f", s }')
-    ffmpeg -nostdin -v error -y -ss "$seek" -i "$video" -frames:v 1 -vf 'scale=640:-2' "$frame" 2>/dev/null && [ -s "$frame" ] && return 0
-    ffmpeg -nostdin -v error -y -i "$video" -frames:v 1 -vf 'scale=640:-2' "$frame" 2>/dev/null && [ -s "$frame" ]
+    media ffmpeg -nostdin -v error -y -ss "$seek" -i "$video" -frames:v 1 -vf 'scale=640:-2' "$frame" 2>/dev/null && [ -s "$frame" ] && return 0
+    media ffmpeg -nostdin -v error -y -i "$video" -frames:v 1 -vf 'scale=640:-2' "$frame" 2>/dev/null && [ -s "$frame" ]
 }
 
 case "$mime" in
@@ -77,7 +89,7 @@ case "$mime" in
 
     video/*)
         if command -v ffprobe >/dev/null 2>&1; then
-            ffprobe -v error -select_streams v:0 -show_entries stream=width,height:format=duration \
+            media ffprobe -v error -select_streams v:0 -show_entries stream=width,height:format=duration \
                 -of default=noprint_wrappers=1 "$file" 2>/dev/null |
                 awk -F= '$1 == "width" { w = $2 } $1 == "height" { h = $2 } $1 == "duration" { d = $2 }
                     END { printf "%dx%d  %d:%02d\n", w, h, d / 60, d % 60 }'
