@@ -28,29 +28,68 @@ fi
 
 mime="$(file --mime-type -Lb "$file" 2>/dev/null || true)"
 
+# Draw an image inside the preview pane: Kitty graphics in Ghostty and Kitty,
+# Sixel elsewhere, character art when neither is possible.
+show_image() {
+    local image=$1 rows=$2 format=sixels
+    if [[ ${TERM_PROGRAM:-} == ghostty || ${TERM:-} == xterm-ghostty ||
+          -n ${GHOSTTY_RESOURCES_DIR:-} || -n ${KITTY_WINDOW_ID:-} ]]; then
+        # Unicode placeholders keep the image inside fzf's preview pane.
+        if command -v kitten >/dev/null 2>&1; then
+            kitten icat --clear --transfer-mode=stream --unicode-placeholder \
+                --stdin=no --place="${cols}x${rows}@0x0" -- "$image" |
+                sed '$d' | sed $'$s/$/\e[m/'
+            return
+        fi
+        format=symbols
+    fi
+    if command -v chafa >/dev/null 2>&1; then
+        chafa --format="$format" --animate=off --size="${cols}x${rows}" -- "$image" 2>/dev/null
+    else
+        file "$image"
+        echo
+        echo "Install chafa for image previews:"
+        echo "Install the chafa package using your package manager."
+    fi
+}
+
+# One frame from a video, cached by path, size and modification time.
+video_frame() {
+    local video=$1 cache key duration seek
+    command -v ffmpeg >/dev/null 2>&1 || return 1
+    cache="${XDG_CACHE_HOME:-$HOME/.cache}/fzf-preview"
+    key=$(printf '%s\n%s\n%s\n' "$(cd -- "$(dirname -- "$video")" && pwd -P)/$(basename -- "$video")" \
+        "$(wc -c < "$video")" "$(stat -c %Y -- "$video" 2>/dev/null || stat -f %m -- "$video")" | cksum | cut -d' ' -f1)
+    frame="$cache/$key.jpg"
+    [ -s "$frame" ] && return 0
+    mkdir -p "$cache" || return 1
+    # A tenth of the way in, at most 30 s, skips title cards; a short clip starts at 0.
+    duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$video" 2>/dev/null)
+    seek=$(awk -v d="${duration:-0}" 'BEGIN { s = d / 10; if (s > 30) s = 30; printf "%.2f", s }')
+    ffmpeg -nostdin -v error -y -ss "$seek" -i "$video" -frames:v 1 -vf 'scale=640:-2' "$frame" 2>/dev/null && [ -s "$frame" ] && return 0
+    ffmpeg -nostdin -v error -y -i "$video" -frames:v 1 -vf 'scale=640:-2' "$frame" 2>/dev/null && [ -s "$frame" ]
+}
+
 case "$mime" in
     image/*)
-        image_format=sixels
-        if [[ ${TERM_PROGRAM:-} == ghostty || ${TERM:-} == xterm-ghostty ||
-              -n ${GHOSTTY_RESOURCES_DIR:-} || -n ${KITTY_WINDOW_ID:-} ]]; then
-            # Ghostty and Kitty draw Kitty graphics, not Sixel. Unicode
-            # placeholders keep the image inside fzf's preview pane.
-            if command -v kitten >/dev/null 2>&1; then
-                kitten icat --clear --transfer-mode=stream --unicode-placeholder \
-                    --stdin=no --place="${cols}x${lines}@0x0" -- "$file" |
-                    sed '$d' | sed $'$s/$/\e[m/'
-                exit
-            fi
-            # Without kitten, character art still shows something there.
-            image_format=symbols
+        show_image "$file" "$lines"
+        ;;
+
+    video/*)
+        if command -v ffprobe >/dev/null 2>&1; then
+            ffprobe -v error -select_streams v:0 -show_entries stream=width,height:format=duration \
+                -of default=noprint_wrappers=1 "$file" 2>/dev/null |
+                awk -F= '$1 == "width" { w = $2 } $1 == "height" { h = $2 } $1 == "duration" { d = $2 }
+                    END { printf "%dx%d  %d:%02d\n", w, h, d / 60, d % 60 }'
         fi
-        if command -v chafa >/dev/null 2>&1; then
-            chafa --format="$image_format" --animate=off --size="${cols}x${lines}" -- "$file" 2>/dev/null
+        frame=""
+        if video_frame "$file"; then
+            show_image "$frame" "$((lines - 1))"
         else
             file "$file"
             echo
-            echo "Install chafa for image previews:"
-            echo "Install the chafa package using your package manager."
+            echo "Install ffmpeg for video previews:"
+            echo "Install the ffmpeg package using your package manager."
         fi
         ;;
 
