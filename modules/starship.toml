@@ -10,7 +10,6 @@ $username\
 $nix_shell\
 ${env_var.NVIM}\
 ${env_var.YAZI_LEVEL}\
-${env_var.NNNLVL}\
 $shlvl\
 [](bg:directory fg:user)\
 $directory\
@@ -42,8 +41,8 @@ style_root = "bg:user fg:alert"
 format = "[$user ]($style)"
 
 # Subshell markers sit beside the username and show only inside one: a Nix
-# shell by name, a shell opened from Neovim, Yazi or nnn, and how deep any
-# other nested shell is. `exit` there leaves the subshell, not the terminal.
+# shell by name, a shell opened from Neovim or Yazi, and how deep any other
+# nested shell is. `exit` there leaves the subshell, not the terminal.
 [nix_shell]
 symbol = " "
 style = "bg:user fg:docker"
@@ -57,10 +56,6 @@ format = "[nvim ]($style)"
 [env_var.YAZI_LEVEL]
 style = "bg:user fg:docker"
 format = "[yazi ]($style)"
-
-[env_var.NNNLVL]
-style = "bg:user fg:docker"
-format = "[nnn ]($style)"
 
 [shlvl]
 disabled = false
