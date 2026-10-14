@@ -29,9 +29,23 @@ fi
 mime="$(file --mime-type -Lb "$file" 2>/dev/null || true)"
 
 case "$mime" in
-       image/*)
+    image/*)
+        image_format=sixels
+        if [[ ${TERM_PROGRAM:-} == ghostty || ${TERM:-} == xterm-ghostty ||
+              -n ${GHOSTTY_RESOURCES_DIR:-} || -n ${KITTY_WINDOW_ID:-} ]]; then
+            # Ghostty and Kitty draw Kitty graphics, not Sixel. Unicode
+            # placeholders keep the image inside fzf's preview pane.
+            if command -v kitten >/dev/null 2>&1; then
+                kitten icat --clear --transfer-mode=stream --unicode-placeholder \
+                    --stdin=no --place="${cols}x${lines}@0x0" -- "$file" |
+                    sed '$d' | sed $'$s/$/\e[m/'
+                exit
+            fi
+            # Without kitten, character art still shows something there.
+            image_format=symbols
+        fi
         if command -v chafa >/dev/null 2>&1; then
-            chafa --format=sixels --animate=off --size="${cols}x${lines}" "$file" 2>/dev/null
+            chafa --format="$image_format" --animate=off --size="${cols}x${lines}" -- "$file" 2>/dev/null
         else
             file "$file"
             echo
