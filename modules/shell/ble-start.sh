@@ -8,7 +8,7 @@ if [[ -t 0 && -t 1 && -z ${BLE_VERSION-} && ${COMMANDER_BLE:-1} != 0 ]]; then
     # shellcheck disable=SC1090
     source -- "$_commander_ble" --attach=none
   else
-    printf 'Commander-os: ble.sh is missing; rerun the Bash installer.\n' >&2
+    printf 'Myfish: ble.sh is missing; rerun the Bash installer.\n' >&2
   fi
   unset _commander_ble
 fi

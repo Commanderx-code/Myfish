@@ -70,7 +70,7 @@ def download(url, checksum, target):
 
 
 def write_tools(home, files, receipt):
-    for path, (data, mode) in files.items():
+    for path, (data, _mode) in files.items():
         if not path.is_relative_to(home) or '..' in path.parts or any(p.is_symlink() for p in [path, *path.parents] if p.is_relative_to(home)):
             raise RuntimeError(f'Refusing unsafe editor path: {path}')
         # Preserve pre-existing tools instead of shadowing or replacing them silently.
