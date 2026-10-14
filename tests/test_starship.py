@@ -113,7 +113,7 @@ class StarshipTests(unittest.TestCase):
                     plain = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
                     # The first segment is the OS logo and the username, then any markers.
                     segment = plain.split('\ue0b0', 1)[0]
-                    marker = segment.split(' ', 3)[3].strip()
+                    marker = segment.split(' ', 2)[2].strip()
                     self.assertEqual(marker, expected)
                     self.assertEqual(result.stderr, '')
 

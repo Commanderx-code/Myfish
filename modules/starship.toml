@@ -39,7 +39,7 @@ command_timeout = 1200
 [os]
 disabled = false
 style = "bg:user fg:prompt_text"
-format = "[ $symbol ]($style)"
+format = "[$symbol ]($style)"
 
 [os.symbols]
 Arch = "\uf303"
