@@ -44,6 +44,8 @@
             zsh
             shellcheck
             starship
+            ruff
+            nixfmt
           ];
         };
       });

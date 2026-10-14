@@ -1,7 +1,14 @@
 name: Validate
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     strategy:
@@ -9,12 +16,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     permissions:
       contents: read
       actions: write # purge superseded Nix caches
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31
       # Keep the Nix store between runs, so unchanged packages are not rebuilt.
       # Only main saves: a cache saved from another branch is not shared and
       # would crowd main's out of the repository's cache quota. Purging is
@@ -31,6 +39,8 @@ jobs:
       - name: Test bootstrap safety
         run: |
           nix develop --command python3 -B -m unittest discover -s tests -v
+          nix develop --command ruff check --isolated --select F,E9 scripts tests modules/fzf-rg
+          nix develop --command nixfmt --check flake.nix modules/home.nix scripts/maintenance.nix
           bash -n uninstall.sh install.sh scripts/prerequisites.sh
           nix develop --command shellcheck uninstall.sh install.sh scripts/prerequisites.sh modules/fzf-preview modules/shell/common.sh modules/shell/macos.sh modules/shell/bash.sh modules/shell/ble-start.sh modules/shell/ble-finish.sh
       - name: Build example home without activation

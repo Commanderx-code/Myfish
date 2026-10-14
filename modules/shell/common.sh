@@ -28,11 +28,13 @@ gcom() {
   git add . && git commit -m "$*"
 }
 lazyg() { gcom "$@" && git push; }
-fcd() {
+_commander_pick_directory() {
   local selected
-  IFS= read -r -d '' selected < <(_commander_fd --type d --hidden --exclude .git --print0 | fzf --read0 --print0) || return 0
+  IFS= read -r -d '' selected < <(_commander_fd --type d --print0 "$@" | fzf --read0 --print0) || return 0
   cd -- "$selected" || return
 }
+fcd() { _commander_pick_directory --max-depth 1 --no-ignore --follow; }
+cdi() { _commander_pick_directory --hidden --follow --exclude .git; }
 fdi() {
   local selected preview editor
   printf -v preview 'bash %q {}' "$HOME/.local/bin/fzf-preview"
@@ -92,9 +94,9 @@ notify-run() {
   local result
   "$@"; result=$?
   if [ "$(uname -s)" = Darwin ] && command -v osascript >/dev/null 2>&1; then
-    osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title "Commander-os"' -e 'end run' "Exit status: $result" >/dev/null 2>&1 || true
+    osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title "Myfish"' -e 'end run' "Exit status: $result" >/dev/null 2>&1 || true
   elif command -v notify-send >/dev/null 2>&1; then
-    notify-send --app-name=Commander-os 'Command finished' "Exit status: $result" || true
+    notify-send --app-name=Myfish 'Command finished' "Exit status: $result" || true
   fi
   return "$result"
 }
@@ -125,7 +127,7 @@ alias da='date "+%Y-%m-%d %A %T %Z"'
 alias gs='git status' ga='git add' gc='git commit' gp='git push' gl='git pull'
 if command -v lazygit >/dev/null 2>&1; then alias lg=lazygit; fi
 alias ..='cd ..' ...='cd ../..' ....='cd ../../..' .....='cd ../../../..' bd='cd -' home='cd ~'
-alias cdi=fcd fzf_open_file=fdi fzf_rg_search=rgi
+alias fzf_open_file=fdi fzf_rg_search=rgi
 if command -v eza >/dev/null 2>&1; then
 export EZA_COLORS='da=1;34:di=1;36:fi=0;37:ex=1;32:*.zip=1;31:*.tar=1;31:*.gz=1;31:*.jpg=1;35:*.png=1;35'
 alias ls='eza --icons --group-directories-first'
