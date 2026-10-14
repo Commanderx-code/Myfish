@@ -44,15 +44,13 @@ class StarshipTests(unittest.TestCase):
     def test_character_is_red_cross_on_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
             env = dict(os.environ, STARSHIP_CONFIG=str(ROOT / 'modules/starship.toml'), STARSHIP_CACHE=tmp)
-            for status, symbol in [('0', '╰─ ❯'), ('1', '╰─ ×'), ('127', '╰─ ×'), ('130', '╰─ ×')]:
+            for status, symbol in [('0', '❯'), ('1', '×'), ('127', '×'), ('130', '×')]:
                 with self.subTest(status=status):
                     result = subprocess.run(['starship', 'module', 'character', '--status', status],
                                             cwd=tmp, env=env, check=True, text=True, capture_output=True)
                     self.assertEqual(re.sub(r'\x1b\[[0-9;]*m', '', result.stdout).strip(), symbol)
                     if status != '0':
                         self.assertRegex(result.stdout, r'\x1b\[[0-9;]*31m')
-                        # The connector takes the palette's alert colour.
-                        self.assertRegex(result.stdout, r'38;2;241;108;117m╰─')
 
     def test_git_state_names_the_step_of_a_stopped_rebase(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -113,9 +111,9 @@ class StarshipTests(unittest.TestCase):
                     result = subprocess.run(['starship', 'prompt'], cwd=tmp, env=dict(base, **extra),
                                             check=True, text=True, capture_output=True)
                     plain = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
-                    # The first segment is the username, then any markers.
-                    segment = plain.split('╭─', 1)[1].split('\ue0b0', 1)[0]
-                    marker = segment.split(' ', 1)[1].strip()
+                    # The first segment is the OS logo and the username, then any markers.
+                    segment = plain.split('\ue0b0', 1)[0]
+                    marker = segment.split(' ', 3)[3].strip()
                     self.assertEqual(marker, expected)
                     self.assertEqual(result.stderr, '')
 
@@ -127,4 +125,4 @@ class StarshipTests(unittest.TestCase):
                                     check=True, text=True, capture_output=True)
             bar, entry = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', result.stdout).strip().splitlines()
             self.assertIn('1.2.3', bar)
-            self.assertEqual(entry.strip(), '╰─ ❯')
+            self.assertEqual(entry.strip(), '❯')
