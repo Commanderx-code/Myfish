@@ -29,6 +29,8 @@ def package_plan(machine, manager):
         tools['zellij'] = 'zellij'
     if shell != 'keep':
         tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git', 'fastfetch': 'fastfetch', 'fc-list': 'fontconfig', 'fc-cache': 'fontconfig'})
+        # extract: tar calls zstd for .tar.zst; 7-Zip handles .7z and RAR.
+        tools.update({'zstd': 'zstd', '7z': 'p7zip' if manager == 'dnf' else '7zip'})
     if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
         tools.update({'git': 'git', 'make': 'make', 'gawk': 'gawk'})
     if machine['features']['neovim']:
@@ -37,7 +39,7 @@ def package_plan(machine, manager):
         tools['git'] = 'git'
     return sorted(set(package for tool, package in tools.items()
                       if (not shutil.which(tool) or (tool == shell and not any(os.access(Path(base) / shell, os.X_OK) for base in ('/usr/bin', '/bin')))) and not (tool == 'fd' and shutil.which('fdfind'))
-                      and not (tool == 'bat' and shutil.which('batcat'))))
+                      and not (tool == 'bat' and shutil.which('batcat')) and not (tool == '7z' and shutil.which('7zz'))))
 
 
 def package_installed(manager, name):

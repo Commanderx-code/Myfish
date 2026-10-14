@@ -22,7 +22,7 @@ FEATURES = ('fish', 'neovim', 'development')
 
 def validate(machine):
     if set(machine) - {'username', 'homeDirectory', 'system', 'features', 'shell', 'greeting'} or not {'username', 'homeDirectory', 'system', 'features'} <= set(machine):
-        raise ValueError('Machine settings must contain only username, homeDirectory, system, features')
+        raise ValueError('Machine settings must contain username, homeDirectory, system and features, and may add shell and greeting')
     if not isinstance(machine['username'], str) or not machine['username'] or '/' in machine['username']:
         raise ValueError('Invalid username')
     if not isinstance(machine['homeDirectory'], str) or not machine['homeDirectory'].startswith('/'):
@@ -179,5 +179,5 @@ if __name__ == '__main__':
     try:
         sys.exit(main())
     except (ValueError, RuntimeError, OSError, subprocess.CalledProcessError, EOFError, KeyboardInterrupt) as error:
-        print(f'Commander-os: {error}', file=sys.stderr)
+        print(f'Myfish: {error}', file=sys.stderr)
         sys.exit(1)
