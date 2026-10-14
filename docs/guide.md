@@ -235,7 +235,7 @@ Fish includes these portable customizations:
 
 - Colored, icon-based `ls`, `ll`, `la`, `tree`, sort/filter variants and Git status listings.
 - `..`, `...`, `bd`, and `home` navigation abbreviations; `mkcd`, `fcd` (immediate visible directories), `cdi` (recursive, including hidden directories), `dirsize`, and `psg`.
-- Ctrl-P file picker, Ctrl-F text search, Ctrl-H fuzzy history, and `**` followed by Tab for file completion. Ctrl-R remains available.
+- Ctrl-P file picker, Ctrl-F text search, fzf's Ctrl-R history search, and `**` followed by Tab for file completion.
 - File, image and PDF previews; Ctrl-/ toggles the preview pane. Image previews depend on terminal sixel support.
 - `gcom` stages and commits; `lazyg` additionally pushes, stopping on errors.
 - `extract`, broot's `br` launcher, and `serve` (localhost only, port 8000 by default).
@@ -317,7 +317,7 @@ Home Manager and direct mode install these files when that shell is selected.
 | Feature | Bash | Zsh | Fish |
 | --- | --- | --- | --- |
 | File / text picker | Ctrl-P / Ctrl-F | Ctrl-P / Ctrl-F | Ctrl-P / Ctrl-F |
-| History | fzf Ctrl-R; Ctrl-H when its widget exists | fzf Ctrl-R; Ctrl-H when its widget exists | Ctrl-R / Ctrl-H |
+| History | fzf Ctrl-R | fzf Ctrl-R | fzf Ctrl-R |
 | Directory shortcuts | aliases | aliases | abbreviations |
 | Syntax / suggestions | ble.sh highlighting and autosuggestions (both installers) | Home Manager and macOS native enable highlighting and autosuggestions | built in, with custom colors |
 | Notifications | `notify-run COMMAND` | `notify-run COMMAND` | automatic long-command notifications |

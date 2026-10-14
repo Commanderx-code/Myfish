@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preview, remove, reinstall, or detach a Commander-os installation."""
+"""Preview, remove, reinstall, or detach a Myfish installation."""
 import argparse
 import base64
 import copy
@@ -61,7 +61,7 @@ def discover(config):
     receipt = install_state.load()
     machine = bootstrap.validate(json.loads(config.read_text())) if config.exists() else receipt.get('machine')
     if not machine:
-        raise RuntimeError('No saved Commander-os settings found. Use --config PATH if needed.')
+        raise RuntimeError('No saved Myfish settings found. Use --config PATH if needed.')
     bootstrap.validate(machine)
     if machine['homeDirectory'] != str(Path.home()) or machine['username'] != pwd.getpwuid(os.getuid()).pw_name:
         raise ValueError('Settings must match the current user and home directory.')
@@ -78,12 +78,12 @@ def discover(config):
                 source = ROOT / ('modules/fzf-preview' if name.endswith('fzf-preview') else 'modules/starship.toml')
                 installed = active / 'home-files' / name
                 if not installed.is_file():
-                    raise RuntimeError('The active Home Manager generation is not recognizable as Commander-os.')
+                    raise RuntimeError('The active Home Manager generation is not recognizable as Myfish.')
                 # HM serializes TOML, so the preview is the exact fingerprint; Starship must have our format.
                 if name.endswith('fzf-preview') and installed.read_bytes() != source.read_bytes():
                     raise RuntimeError('Refusing to remove an unrecognized Home Manager generation.')
                 if name.endswith('starship.toml') and '╭' not in installed.read_text() and '\\u256d' not in installed.read_text().lower():
-                    raise RuntimeError('Home Manager theme does not match the Commander-os setup.')
+                    raise RuntimeError('Home Manager theme does not match the Myfish setup.')
         receipt.update(backend='home-manager', generation=str(active), machine=machine)
     elif receipt.get('backend') == 'home-manager':
         raise RuntimeError('The recorded Home Manager generation is no longer active; refusing stale removal.')
@@ -98,7 +98,7 @@ def discover(config):
                 if path.name not in ('.bashrc', '.zshrc', '.bash_profile') and path.is_file() and not path.is_symlink() and path.read_text() == text:
                     receipt['files'][str(path)] = {'original': None, 'mode': None, 'installed': install_state.digest(path)}
         if not receipt['files']:
-            raise RuntimeError('No recorded or recognizable Commander-os installation found.')
+            raise RuntimeError('No recorded or recognizable Myfish installation found.')
     return receipt, machine
 
 
@@ -261,7 +261,7 @@ def remove_hm(receipt, machine, detach, apply):
             command = f'HOME_MANAGER_BACKUP_EXT=commander-recovery-{time.time_ns()} ' + shlex.quote(str(backup / 'generation/activate'))
             print(f'Maintenance stopped. Recovery backup: {backup}\nRestore the previous generation with:\n{command}', file=sys.stderr)
             raise
-    print('Home Manager removed. Reopen your terminal.' if detach else 'Commander-os removed; Nix and recovery backups retained.')
+    print('Home Manager removed. Reopen your terminal.' if detach else 'Myfish removed; Nix and recovery backups retained.')
     return True
 
 
@@ -303,7 +303,7 @@ def remove_native(receipt, components, apply):
         unchanged = path.is_file() and not path.is_symlink() and install_state.digest(path) == record['installed']
         print(f'{path}: ' + ('restore original/remove installed file' if unchanged else 'KEEP changed/missing/symlinked file'))
     for path in edits:
-        print(f'{path}: remove Commander-os startup entry; keep other content')
+        print(f'{path}: remove Myfish startup entry; keep other content')
     eligible = receipt.get('packages', []) if components == COMPONENTS else [p for p in receipt.get('packages', []) if p == 'neovim' and 'neovim' in components]
     fallback = fallback_shell() if 'shell' in components else None
     if receipt.get('manager') != 'brew':
@@ -429,8 +429,8 @@ def reinstall(receipt, machine, config, components, remove, apply, selective):
 
 
 def menu():
-    print('Commander-os maintenance\n'
-          '  1) Uninstall all Commander-os components\n'
+    print('Myfish maintenance\n'
+          '  1) Uninstall all Myfish components\n'
           '  2) Reinstall the saved setup\n'
           '  3) Choose components to remove\n'
           '  4) Choose components to reinstall\n'
@@ -472,14 +472,14 @@ def main():
         raise ValueError('Apply requires an interactive terminal for confirmation.')
     receipt, machine = discover(args.config)
     print('Detected:', receipt['backend'])
-    print('Scope: Commander-os for this account. Nix, Homebrew, personal files and recovery backups stay.')
+    print('Scope: Myfish for this account. Nix, Homebrew, personal files and recovery backups stay.')
     if receipt.get('pending'):
         raise RuntimeError(f"A previous operation stopped partway through. Restore its generation first: {receipt.get('recovery')}/generation/activate")
     if args.action == 'status':
         print(json.dumps({'backend': receipt['backend'], 'machine': machine, 'recorded_files': len(receipt['files']), 'recorded_packages': receipt['packages']}, indent=2))
     elif args.action == 'detach':
         if receipt['backend'] != 'home-manager':
-            raise RuntimeError('Detach requires an active Commander-os Home Manager installation.')
+            raise RuntimeError('Detach requires an active Myfish Home Manager installation.')
         remove_hm(receipt, machine, True, args.apply)
     elif args.action == 'reinstall':
         reinstall(receipt, machine, args.config, components, False, args.apply, args.components != 'all')
@@ -497,5 +497,5 @@ if __name__ == '__main__':
     try:
         sys.exit(main())
     except (ValueError, RuntimeError, OSError, subprocess.CalledProcessError, EOFError, KeyboardInterrupt) as error:
-        print(f'Commander-os: {error}', file=sys.stderr)
+        print(f'Myfish: {error}', file=sys.stderr)
         sys.exit(1)
