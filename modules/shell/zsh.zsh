@@ -6,5 +6,3 @@ zle -N commander-open _commander_open_widget
 zle -N commander-search _commander_search_widget
 bindkey '^P' commander-open
 bindkey '^F' commander-search
-
-if (( $+widgets[fzf-history-widget] )); then bindkey '^H' fzf-history-widget; fi

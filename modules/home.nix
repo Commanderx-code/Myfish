@@ -45,6 +45,7 @@ in
         gzip
         bzip2
         xz
+        zstd
         python3
         git
       ]
