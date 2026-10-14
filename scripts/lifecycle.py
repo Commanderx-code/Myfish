@@ -82,7 +82,8 @@ def discover(config):
                 # HM serializes TOML, so the preview is the exact fingerprint; Starship must have our format.
                 if name.endswith('fzf-preview') and installed.read_bytes() != source.read_bytes():
                     raise RuntimeError('Refusing to remove an unrecognized Home Manager generation.')
-                if name.endswith('starship.toml') and '╭' not in installed.read_text() and '\\u256d' not in installed.read_text().lower():
+                # Older generations drew a ╭ corner; current ones name the palette's segment colours.
+                if name.endswith('starship.toml') and not any(mark in installed.read_text().lower() for mark in ('╭', '\\u256d', 'prompt_dark')):
                     raise RuntimeError('Home Manager theme does not match the Myfish setup.')
         receipt.update(backend='home-manager', generation=str(active), machine=machine)
     elif receipt.get('backend') == 'home-manager':

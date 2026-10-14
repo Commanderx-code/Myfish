@@ -4,7 +4,7 @@
 palette = "eldritch"
 
 format = """
-[╭─](bg:user fg:prompt_text)\
+$os\
 $python\
 $username\
 $nix_shell\
@@ -33,6 +33,23 @@ $status
 """
 
 command_timeout = 1200
+
+# The operating system's logo opens the bar. The glyphs are Nerd Font private-use
+# characters, written as escapes so that any editor shows them as intended.
+[os]
+disabled = false
+style = "bg:user fg:prompt_text"
+format = "[ $symbol ]($style)"
+
+[os.symbols]
+Arch = "\uf303"
+Garuda = "\uf303"
+Macos = "\uf302"
+Ubuntu = "\uf31b"
+Debian = "\uf306"
+Fedora = "\uf30a"
+NixOS = "\uf313"
+Linux = "\uf17c"
 
 [username]
 show_always = true
@@ -64,11 +81,10 @@ symbol = "↕"
 style = "bg:user fg:docker bold"
 format = "[$symbol$shlvl ]($style)"
 
-# The connector is part of the character, so it turns red along with the ×
-# after an unsuccessful command.
+# A green ❯ after success, a red × after an unsuccessful command.
 [character]
-error_symbol = "[╰─](bg:user fg:alert) [×](bold red) "
-success_symbol = "[╰─](bg:user fg:prompt_text) [❯](green bold) "
+error_symbol = "[×](bold red) "
+success_symbol = "[❯](green bold) "
 
 # Keep detailed exit codes and pipeline labels out of the prompt.
 [status]
