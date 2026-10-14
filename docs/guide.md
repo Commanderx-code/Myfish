@@ -236,7 +236,7 @@ Fish includes these portable customizations:
 - Colored, icon-based `ls`, `ll`, `la`, `tree`, sort/filter variants and Git status listings.
 - `..`, `...`, `bd`, and `home` navigation abbreviations; `mkcd`, `fcd` (immediate visible directories), `cdi` (recursive, including hidden directories), `dirsize`, and `psg`.
 - Ctrl-P file picker, Ctrl-F text search, fzf's Ctrl-R history search, and `**` followed by Tab for file completion.
-- File, image and PDF previews; Ctrl-/ toggles the preview pane. Image previews depend on terminal sixel support.
+- File, image, video and PDF previews; Ctrl-/ toggles the preview pane. Images use Kitty graphics in Ghostty and Kitty (with `kitten` installed) and Sixel elsewhere; a video shows one frame, taken with `ffmpeg` when it is installed.
 - `gcom` stages and commits; `lazyg` additionally pushes, stopping on errors.
 - `extract`, broot's `br` launcher, and `serve` (localhost only, port 8000 by default).
 - Syntax colors, a username-based greeting, Fastfetch when installed, and long-command notifications.
