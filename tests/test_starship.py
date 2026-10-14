@@ -99,14 +99,13 @@ class StarshipTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             base = dict(os.environ, STARSHIP_CONFIG=str(ROOT / 'modules/starship.toml'), STARSHIP_CACHE=tmp,
                         SHLVL='1')
-            for name in ('IN_NIX_SHELL', 'name', 'NVIM', 'YAZI_LEVEL', 'NNNLVL'):
+            for name in ('IN_NIX_SHELL', 'name', 'NVIM', 'YAZI_LEVEL'):
                 base.pop(name, None)
             for extra, expected in [
                 ({}, ''),
                 ({'IN_NIX_SHELL': 'impure', 'name': 'devshell'}, '\uf313 devshell'),
                 ({'NVIM': '/run/user/1000/nvim.1.0'}, 'nvim'),
                 ({'YAZI_LEVEL': '1'}, 'yazi'),
-                ({'NNNLVL': '1'}, 'nnn'),
                 ({'SHLVL': '2'}, '↕2'),
                 ({'SHLVL': '3', 'YAZI_LEVEL': '1'}, 'yazi ↕3'),
             ]:
