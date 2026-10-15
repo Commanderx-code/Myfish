@@ -3,10 +3,12 @@
 `toolbox.json` is this repository's exported menu for
 [HelixForge](https://github.com/Commanderx-code/Helix-Forge), which replaced
 Commander Toolbox. Commit the configuration
-and its catalog entry together, then push to `main`. HelixForge checks for updates
-at minutes 17 and 47 each hour and adopts the current source revision only after
-this repository's `check.yml` push workflow succeeds. Failed or unfinished checks
-leave the previous HelixForge source version in place. GitHub may delay scheduled runs.
+and its catalog entry together, then push to `main`. When this repository's
+`check.yml` succeeds on `main`, the **Notify HelixForge** workflow starts
+HelixForge's source sync, which adopts the revision only after verifying that
+successful check itself. Failed or unfinished checks leave the previous HelixForge
+source version in place. HelixForge also checks on a schedule, but GitHub runs
+that only every few hours.
 
 HelixForge regenerates its menus, runs compatibility tests, builds the Linux x86_64
 application, and publishes a release with a checksum. Existing installations pick
@@ -70,7 +72,11 @@ Open [HelixForge source synchronization](https://github.com/Commanderx-code/Heli
 **Run workflow** checks immediately. The workflow summary/log shows which source
 revision was accepted or is waiting for CI. Builds appear under
 [HelixForge releases](https://github.com/Commanderx-code/Helix-Forge/releases).
-No extra cross-repository token is needed for these public repositories.
+Starting that workflow from here needs the `HELIXFORGE_DISPATCH_TOKEN` secret:
+a fine-grained token for Commanderx-code/Helix-Forge with only **Actions: Read
+and write**. [HelixForge's sync guide](https://github.com/Commanderx-code/Helix-Forge/blob/main/docs/SOURCE-SYNC.md#notifications-from-the-sources)
+shows how to create it. Without it, the notifier only leaves a notice and
+HelixForge adopts the revision on its next push or scheduled run.
 
 GitHub disables scheduled workflows in public repos after 60 days without repo
 activity; re-enable the workflow in Actions if necessary. New source repositories
