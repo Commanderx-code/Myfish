@@ -1,5 +1,5 @@
-name: Notify HelixForge
-# When this repository's checks pass on main, start HelixForge's source sync,
+name: Notify Helix Toolbox
+# When this repository's checks pass on main, start Helix Toolbox's source sync,
 # so it adopts the revision now instead of on its next scheduled run. The sync
 # verifies the revision and its check run itself; this only says "look now".
 on:
@@ -19,16 +19,16 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Start the HelixForge source sync
+      - name: Start the Helix Toolbox source sync
         env:
-          # A fine-grained token for Commanderx-code/Helix-Forge with only
-          # Actions: read and write. See HelixForge's docs/SOURCE-SYNC.md.
+          # A fine-grained token for Commanderx-code/Helix-toolbox with only
+          # Actions: read and write. See Helix Toolbox's docs/SOURCE-SYNC.md.
           GH_TOKEN: ${{ secrets.HELIXFORGE_DISPATCH_TOKEN }}
           REVISION: ${{ github.event.workflow_run.head_sha }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "::notice::HELIXFORGE_DISPATCH_TOKEN is not set; HelixForge adopts $REVISION on its next push or scheduled sync."
+            echo "::notice::HELIXFORGE_DISPATCH_TOKEN is not set; Helix Toolbox adopts $REVISION on its next push or scheduled sync."
             exit 0
           fi
-          gh workflow run sync-sources.yml --repo Commanderx-code/Helix-Forge --ref main -f reason=source-updated
-          echo "Started the HelixForge source sync for $REVISION."
+          gh workflow run sync-sources.yml --repo Commanderx-code/Helix-toolbox --ref main -f reason=source-updated
+          echo "Started the Helix Toolbox source sync for $REVISION."
