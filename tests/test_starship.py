@@ -111,9 +111,10 @@ class StarshipTests(unittest.TestCase):
                     result = subprocess.run(['starship', 'prompt'], cwd=tmp, env=dict(base, **extra),
                                             check=True, text=True, capture_output=True)
                     plain = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
-                    # The first segment is the OS logo and the username, then any markers.
+                    # The first segment is the OS logo and the username, then any markers;
+                    # the username has no space after it when no marker follows.
                     segment = plain.split('\ue0b0', 1)[0]
-                    marker = segment.split(' ', 2)[2].strip()
+                    marker = ''.join(segment.split(' ', 2)[2:]).strip()
                     self.assertEqual(marker, expected)
                     self.assertEqual(result.stderr, '')
 
