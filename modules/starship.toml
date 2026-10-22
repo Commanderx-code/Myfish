@@ -55,7 +55,7 @@ Linux = "\uf17c"
 show_always = true
 style_user = "bg:user fg:prompt_text"
 style_root = "bg:user fg:alert"
-format = "[$user ]($style)"
+format = "[$user]($style)"
 
 # Subshell markers sit beside the username and show only inside one: a Nix
 # shell by name, a shell opened from Neovim or Yazi, and how deep any other
@@ -64,22 +64,22 @@ format = "[$user ]($style)"
 symbol = " "
 style = "bg:user fg:docker"
 heuristic = false
-format = "[$symbol$name ]($style)"
+format = "[ $symbol$name]($style)"
 
 [env_var.NVIM]
 style = "bg:user fg:docker"
-format = "[nvim ]($style)"
+format = "[ nvim]($style)"
 
 [env_var.YAZI_LEVEL]
 style = "bg:user fg:docker"
-format = "[yazi ]($style)"
+format = "[ yazi]($style)"
 
 [shlvl]
 disabled = false
 threshold = 2
 symbol = "↕"
 style = "bg:user fg:docker bold"
-format = "[$symbol$shlvl ]($style)"
+format = "[ $symbol$shlvl]($style)"
 
 # A green ❯ after success, a red × after an unsuccessful command.
 [character]
