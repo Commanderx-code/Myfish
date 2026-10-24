@@ -159,12 +159,12 @@ format = '[ $symbol ($version) ]($style)'
 [python]
 symbol = ""
 style = "bg:user fg:prompt_text"
-format = "[ $symbol$version (\\($virtualenv\\)) ]($style) "
+format = "[$symbol $version( \\($virtualenv\\)) ]($style)"
 
 [docker_context]
 symbol = " "
 style = "bg:docker fg:prompt_dark"
-format = "[ $symbol$context ]($style) "
+format = "[ $symbol$context ]($style)"
 
 [package]
 symbol = "󰏗 "

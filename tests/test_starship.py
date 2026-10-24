@@ -127,3 +127,25 @@ class StarshipTests(unittest.TestCase):
             bar, entry = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', result.stdout).strip().splitlines()
             self.assertIn('1.2.3', bar)
             self.assertEqual(entry.strip(), '❯')
+
+    def test_bar_segments_leave_no_unstyled_gap(self):
+        # Text after a segment's closing ]($style) has the terminal's own background,
+        # which shows as a gap in the bar.
+        config = tomllib.loads((ROOT / 'modules/starship.toml').read_text())
+        tables = [(name, table) for name, table in config.items() if isinstance(table, dict)]
+        tables += [(f'env_var.{name}', table) for name, table in config['env_var'].items()]
+        for name, table in tables:
+            if 'bg:' in table.get('style', ''):
+                with self.subTest(module=name):
+                    self.assertRegex(table['format'], r'\)$')
+        with tempfile.TemporaryDirectory() as tmp:
+            env = dict(os.environ, STARSHIP_CONFIG=str(ROOT / 'modules/starship.toml'), STARSHIP_CACHE=tmp)
+            env.update(PWD=tmp, SHLVL='1')
+            (Path(tmp) / 'main.py').write_text('print("fixture")\n')
+            result = subprocess.run(['starship', 'prompt'], cwd=tmp, env=env,
+                                    check=True, text=True, capture_output=True)
+            bar = next(line for line in result.stdout.splitlines() if '\ue0b0' in line)
+            self.assertIn('', bar)
+            # The only reset in the bar comes just before its closing arrow.
+            body = re.sub(r'(\x1b\[[0-9;]*m)+$', '', bar.rsplit('', 1)[0])
+            self.assertNotIn('\x1b[0m', body)
