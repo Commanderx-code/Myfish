@@ -5,7 +5,6 @@ palette = "eldritch"
 
 format = """
 $os\
-$python\
 $username\
 $nix_shell\
 ${env_var.NVIM}\
@@ -21,6 +20,7 @@ $git_state\
 $c\
 $golang\
 $java\
+$python\
 $rust\
 $package\
 [](fg:language bg:docker)\
@@ -157,9 +157,9 @@ style = "bg:language fg:prompt_dark"
 format = '[ $symbol ($version) ]($style)'
 
 [python]
-symbol = ""
-style = "bg:user fg:prompt_text"
-format = "[$symbol $version( \\($virtualenv\\)) ]($style)"
+symbol = " "
+style = "bg:language fg:prompt_dark"
+format = "[ $symbol ($version)( \\($virtualenv\\)) ]($style)"
 
 [docker_context]
 symbol = " "
