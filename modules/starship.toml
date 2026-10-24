@@ -3,6 +3,9 @@
 # this file and swaps in the palette chosen with its `rice` command.
 palette = "eldritch"
 
+# Git, languages and Docker are each a group in ( ): a block and its arrow show
+# only when one of its modules has something to say, and every arrow takes its
+# left color from whatever block was drawn before it (prev_bg).
 format = """
 $os\
 $username\
@@ -12,20 +15,20 @@ ${env_var.YAZI_LEVEL}\
 $shlvl\
 [](bg:directory fg:user)\
 $directory\
-[](fg:directory bg:git)\
+([](fg:prev_bg bg:git)\
 $git_branch\
 $git_status\
-$git_state\
-[](fg:git bg:language)\
+$git_state)\
+([](fg:prev_bg bg:language)\
 $c\
 $golang\
 $java\
 $python\
 $rust\
-$package\
-[](fg:language bg:docker)\
-$docker_context\
-[](fg:docker bg:time)\
+$package)\
+([](fg:prev_bg bg:docker)\
+$docker_context)\
+[](fg:prev_bg bg:time)\
 $time\
 [](fg:time)
 $character\
