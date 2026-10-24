@@ -83,7 +83,8 @@ class StarshipTests(unittest.TestCase):
     def test_every_named_colour_is_in_each_palette(self):
         text = (ROOT / 'modules/starship.toml').read_text()
         config = tomllib.loads(text)
-        names = set(re.findall(r'(?:bg|fg):(\w+)', text))
+        # prev_bg and prev_fg are Starship's own: the colors of the block drawn before.
+        names = set(re.findall(r'(?:bg|fg):(\w+)', text)) - {'prev_bg', 'prev_fg'}
         self.assertIn(config['palette'], config['palettes'])
         # Powerline separators (U+E0B0) join the segments; an editor can silently drop them.
         self.assertEqual(config['format'].count('\ue0b0'), 6)
@@ -149,3 +150,23 @@ class StarshipTests(unittest.TestCase):
             # The only reset in the bar comes just before its closing arrow.
             body = re.sub(r'(\x1b\[[0-9;]*m)+$', '', bar.rsplit('', 1)[0])
             self.assertNotIn('\x1b[0m', body)
+
+    def test_empty_blocks_leave_no_arrows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = dict(os.environ, STARSHIP_CONFIG=str(ROOT / 'modules/starship.toml'), STARSHIP_CACHE=tmp,
+                       PWD=tmp, SHLVL='1')
+            # Username, folder and clock: an arrow after each, and none for git,
+            # languages or Docker until one of them shows something.
+            for files, arrows in [((), 3), (('main.py',), 4)]:
+                with self.subTest(files=files):
+                    for name in files:
+                        (Path(tmp) / name).write_text('print("fixture")\n')
+                    result = subprocess.run(['starship', 'prompt'], cwd=tmp, env=env,
+                                            check=True, text=True, capture_output=True)
+                    bar = next(line for line in result.stdout.splitlines() if '' in line)
+                    self.assertEqual(bar.count(''), arrows)
+                    # Each arrow is drawn in the color of the block before it.
+                    colors = re.findall(r'\x1b\[48;2;([0-9;]+?);38;2;([0-9;]+)m', bar)
+                    backgrounds = re.findall(r'48;2;(\d+;\d+;\d+)', bar)
+                    for _, fg in colors:
+                        self.assertIn(fg, backgrounds)
