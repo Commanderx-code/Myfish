@@ -21,6 +21,8 @@ FEATURES = ('fish', 'neovim', 'development')
 
 
 def validate(machine):
+    if not isinstance(machine, dict):
+        raise ValueError('Machine settings must be a JSON object')
     if set(machine) - {'username', 'homeDirectory', 'system', 'features', 'shell', 'greeting'} or not {'username', 'homeDirectory', 'system', 'features'} <= set(machine):
         raise ValueError('Machine settings must contain username, homeDirectory, system and features, and may add shell and greeting')
     if not isinstance(machine['username'], str) or not machine['username'] or '/' in machine['username']:
@@ -143,6 +145,8 @@ def main():
               "  curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install | sh -s -- --daemon\n"
               'Then open a new terminal and rerun ./install.sh.', file=sys.stderr)
         return 1
+    if args.apply and install_state.load().get('backend') not in (None, 'home-manager', 'removed'):
+        raise RuntimeError('Use uninstall.sh to remove the recorded direct or detached setup first.')
     with tempfile.TemporaryDirectory(prefix='commander-os-') as directory:
         source = Path(directory)
         stage(source, machine)

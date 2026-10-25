@@ -18,7 +18,7 @@ def record():
 def load():
     path = record()
     data = json.loads(path.read_text()) if path.exists() else {'version': 1, 'files': {}, 'packages': []}
-    if data.get('version') != 1 or not isinstance(data.get('files'), dict) or not isinstance(data.get('packages'), list):
+    if not isinstance(data, dict) or data.get('version') != 1 or not isinstance(data.get('files'), dict) or not isinstance(data.get('packages'), list):
         raise ValueError('Invalid Myfish installation record')
     return data
 
