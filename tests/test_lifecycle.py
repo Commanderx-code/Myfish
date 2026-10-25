@@ -224,16 +224,18 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(install_state.load()['pending'], 'detach')
         self.assertRegex(stderr.getvalue(), r'HOME_MANAGER_BACKUP_EXT=commander-recovery-\d+ \S+/generation/activate')
 
-    def pending_receipt(self, generation):
-        machine = {'username': lifecycle.pwd.getpwuid(os.getuid()).pw_name, 'homeDirectory': str(self.home),
-                   'system': 'x86_64-linux', 'features': {'fish': False, 'neovim': False, 'development': False}}
-        install_state.save({'version': 1, 'backend': 'home-manager', 'machine': machine, 'files': {}, 'packages': [],
-                            'generation': str(generation), 'recovery': str(self.home / 'recovery'), 'pending': 'remove'})
+    def machine(self, username):
+        return {'username': username, 'homeDirectory': str(self.home), 'system': 'x86_64-linux',
+                'shell': 'keep', 'features': {'fish': False, 'neovim': False, 'development': False}}
+
+    def save_pending_receipt(self, **fields):
+        record = {'version': 1, 'backend': 'home-manager', 'machine': self.machine(lifecycle.pwd.getpwuid(os.getuid()).pw_name),
+                  'files': {}, 'packages': [], 'recovery': str(self.home / 'recovery'), 'pending': 'remove'}
+        install_state.save({**record, **fields})
         return self.home / 'no-machine.json'
 
     def test_interrupted_maintenance_gives_a_fresh_backup_suffix(self):
-        # Home Manager stops when a backup it would write already exists, so a second restore needs a new suffix.
-        config = self.pending_receipt(self.home / 'old-generation')
+        config = self.save_pending_receipt(generation=str(self.home / 'old-generation'))
         messages = []
         for _ in range(2):
             with patch.object(lifecycle, 'generation', return_value=self.home / 'new-generation'), \
@@ -246,10 +248,19 @@ class LifecycleTests(unittest.TestCase):
 
     def test_unchanged_generation_clears_the_pending_marker(self):
         active = self.home / 'generation'
-        config = self.pending_receipt(active)
+        config = self.save_pending_receipt(generation=str(active))
         with patch.object(lifecycle, 'generation', return_value=active):
             receipt, _ = lifecycle.discover(config)
         self.assertNotIn('pending', receipt)
+
+    def test_damaged_pending_record_stops_with_a_message(self):
+        active = self.home / 'generation'
+        for damage in ({}, {'generation': None}, {'generation': str(active), 'recovery': None}):
+            with self.subTest(damage=damage):
+                config = self.save_pending_receipt(**damage)
+                with patch.object(lifecycle, 'generation', return_value=active), \
+                     self.assertRaisesRegex(RuntimeError, 'installation.json'):
+                    lifecycle.discover(config)
 
     def test_full_reinstall_preserves_disabled_features(self):
         machine = {'shell': 'bash', 'features': {'fish': False, 'neovim': False, 'development': False}}
@@ -282,8 +293,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_native_records_only_previously_absent_packages(self):
         from types import SimpleNamespace
-        machine = {'username': 'example', 'homeDirectory': str(self.home), 'system': 'x86_64-linux',
-                   'shell': 'keep', 'features': {'fish': False, 'neovim': False, 'development': False}}
+        machine = self.machine('example')
         with patch.object(lifecycle.native, 'package_plan', return_value=['eza', 'jq']), \
              patch.object(lifecycle.native, 'package_installed', side_effect=[True, False, True]), \
              patch.object(lifecycle.native.shutil, 'which', return_value='/fixture'), \
