@@ -30,7 +30,7 @@ def package_plan(machine, manager):
     if shell != 'keep':
         tools.update({'file': 'file', 'trash': 'trash-cli', 'unzip': 'unzip', 'chafa': 'chafa', 'git': 'git', 'fastfetch': 'fastfetch', 'fc-list': 'fontconfig', 'fc-cache': 'fontconfig'})
         # extract: tar calls zstd for .tar.zst; 7-Zip handles .7z and RAR.
-        tools.update({'zstd': 'zstd', '7z': 'p7zip' if manager == 'dnf' else '7zip'})
+        tools.update({'zstd': 'zstd', '7z': 'p7zip-plugins' if manager == 'dnf' else '7zip'})
     if shell == 'bash' and not (Path(machine['homeDirectory']) / '.local/share/blesh/ble.sh').is_file():
         tools.update({'git': 'git', 'make': 'make', 'gawk': 'gawk'})
     if machine['features']['neovim']:
@@ -160,15 +160,19 @@ if status is-interactive
     if command -q zoxide
         zoxide init fish | source
     end
-    if test -r /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish
-        source /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish
+    # Arch and Fedora ship fzf's bindings here; Debian keeps them with the examples.
+    for commander_fzf in /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish /usr/share/doc/fzf/examples/key-bindings.fish
+        if test -r $commander_fzf
+            source $commander_fzf
+            break
+        end
     end
     fish_user_key_bindings
 end
 '''
     elif shell in ('bash', 'zsh'):
         files[config / f'commander-os/init.{shell}'] = f'''# Managed by Commander-os direct installation.
-export PATH="$HOME/.local/bin:$PATH"
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
 export STARSHIP_CONFIG="${{XDG_CONFIG_HOME:-$HOME/.config}}/commander-os/starship.toml"
 alias ll='eza -la'
 alias gs='git status'
@@ -237,7 +241,10 @@ unset commander_plugin
     if shell != 'keep':
         # Keep personal or Home Manager-owned Zellij settings untouched.
         zellij_config = config / 'zellij/config.kdl'
-        if not zellij_config.exists() and not zellij_config.is_symlink():
+        record = install_state.load()['files'].get(str(zellij_config)) if zellij_config.is_file() and not zellij_config.is_symlink() else None
+        # The installer's own unchanged copy follows a new shell choice.
+        owned = record and install_state.digest(zellij_config) == record['installed']
+        if owned or not (zellij_config.exists() or zellij_config.is_symlink()):
             files[zellij_config] = ('// Start manually with zellij; Ctrl+G unlocks controls.\n'
                                     'theme "tokyo-night-storm"\ndefault_mode "locked"\n'
                                     f'default_shell {json.dumps(shell)}\n'
@@ -361,6 +368,10 @@ def install_native(machine, *, apply, install_missing, configure_login):
             subprocess.run(['sudo', 'apt-get', 'update'], check=True)
             if 'zellij' in packages and not apt_has_package('zellij'):
                 raise RuntimeError('Zellij is unavailable in your enabled APT repositories. Install Zellij through a trusted source first, or use Home Manager mode. No configuration was changed.')
+            if 'eza' in packages and not apt_has_package('eza'):
+                # Older Debian and Ubuntu releases lack eza; ls and tree keep their usual meaning.
+                print('eza is unavailable in your enabled APT repositories; skipping it.')
+                packages = [name for name in packages if name != 'eza']
             command = ['sudo', manager, 'install', '-y']
         elif manager == 'brew':
             command = ['brew', 'install', '--formula']
@@ -402,21 +413,25 @@ def install_native(machine, *, apply, install_missing, configure_login):
             subprocess.run(['sh', str(script), '--yes', '--bin-dir', str(binary_dir)], check=True)
         install_state.finished(receipt, binary)
     if blesh:
-        ble_dir = home / '.local/share/blesh'
-        for path in ble_dir.rglob('*'):
+        # make install writes the program and its documentation.
+        ble_dirs = (home / '.local/share/blesh', home / '.local/share/doc/blesh')
+        for path in (path for ble_dir in ble_dirs for path in ble_dir.rglob('*')):
             if path.is_file():
                 install_state.capture(receipt, path)
         install_state.save(receipt)
-        with tempfile.TemporaryDirectory(prefix='commander-os-blesh-') as directory:
-            source = Path(directory) / 'ble.sh'
-            subprocess.run(['git', 'clone', '--recursive', '--depth', '1', '--shallow-submodules',
-                            'https://github.com/akinomyoga/ble.sh.git', str(source)], check=True)
-            subprocess.run(['gmake' if manager == 'brew' else 'make', '-C', str(source), 'install', f'PREFIX={home / ".local"}'], check=True)
-        for path in ble_dir.rglob('*'):
-            if path.is_file() and not path.is_symlink():
-                receipt['files'].setdefault(str(path), {'original': None, 'mode': None, 'installed': None})
-                receipt['files'][str(path)]['installed'] = install_state.digest(path)
-        install_state.save(receipt)
+        try:
+            with tempfile.TemporaryDirectory(prefix='commander-os-blesh-') as directory:
+                source = Path(directory) / 'ble.sh'
+                subprocess.run(['git', 'clone', '--recursive', '--depth', '1', '--shallow-submodules',
+                                'https://github.com/akinomyoga/ble.sh.git', str(source)], check=True)
+                subprocess.run(['gmake' if manager == 'brew' else 'make', '-C', str(source), 'install', f'PREFIX={home / ".local"}'], check=True)
+        finally:
+            # A failed build can leave files behind; record them so removal finds them.
+            for path in (path for ble_dir in ble_dirs for path in ble_dir.rglob('*')):
+                if path.is_file() and not path.is_symlink():
+                    receipt['files'].setdefault(str(path), {'original': None, 'mode': None, 'installed': None})
+                    receipt['files'][str(path)]['installed'] = install_state.digest(path)
+            install_state.save(receipt)
     write_configs(files, receipt)
     if shell == 'fish':
         retire_fish_helpers(config, receipt)

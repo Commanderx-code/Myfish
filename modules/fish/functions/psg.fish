@@ -8,7 +8,7 @@ function psg --description 'List running processes matching a pattern'
         if test (uname -s) = Darwin
             pgrep -ifl -- $argv[1]
         else
-            pgrep -ai -- $argv[1]
+            pgrep -aif -- $argv[1]
         end
     else
         ps aux | rg -i -- $argv[1]
