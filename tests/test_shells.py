@@ -152,3 +152,76 @@ class ShellParityTests(unittest.TestCase):
                 result = self.run_shell(shell, code, [adapter])
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('fdi' if shell == 'bash' else 'commander-open', result.stdout)
+
+    def shell_tools(self, directory, shell, *names):
+        tools = Path(directory) / 'bin'
+        tools.mkdir()
+        executable = os.environ.get('COMMANDER_TEST_BASH', shell) if shell == 'bash' else shell
+        for name in (shell, 'uname', 'whoami', 'realpath', *names):
+            (tools / name).symlink_to(shutil.which(executable if name == shell else name))
+        return tools
+
+    def test_extract_writes_into_the_current_directory_and_reads_symlink_names(self):
+        import gzip
+        for shell in ['fish', 'bash', 'zsh']:
+            with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
+                require_shell(self, shell)
+                tools = self.shell_tools(directory, shell, 'gzip', 'gunzip')
+                (tools / 'tar').write_text('#!/bin/sh\necho "tar $*"\n')
+                (tools / 'tar').chmod(0o700)
+                work = Path(directory) / 'work'
+                (work / 'sub').mkdir(parents=True)
+                (work / 'sub/notes.txt.gz').write_bytes(gzip.compress(b'notes\n'))
+                (work / 'sub/blob.bin').touch()
+                (work / 'link.tar.gz').symlink_to('sub/blob.bin')
+                for archive in ('sub/notes.txt.gz', 'link.tar.gz'):
+                    if shell == 'fish':
+                        command = [str(tools / shell), '--no-config', '-c', 'source $argv[1]; extract $argv[2]',
+                                   str(ROOT / 'modules/fish/functions/extract.fish'), archive]
+                    else:
+                        flags = ['--noprofile', '--norc'] if shell == 'bash' else ['-f']
+                        command = [str(tools / shell), *flags, '-i', '-c', '. "$1"; extract "$2"', 'test',
+                                   str(ROOT / 'modules/shell/common.sh'), archive]
+                    result = subprocess.run(command, cwd=work, text=True, capture_output=True,
+                                            env=dict(os.environ, PATH=str(tools), COMMANDER_QUIET='1'))
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual((work / 'notes.txt').read_text(), 'notes\n')
+                self.assertTrue((work / 'sub/notes.txt.gz').exists())
+                self.assertIn('tar -xf', result.stdout)
+
+    def test_finder_uses_fdfind_when_fd_is_only_an_alias(self):
+        for shell in ['bash', 'zsh']:
+            with self.subTest(shell=shell), tempfile.TemporaryDirectory() as directory:
+                require_shell(self, shell)
+                tools = self.shell_tools(directory, shell)
+                code = ('unset FZF_DEFAULT_COMMAND FZF_ALT_C_COMMAND; . "$1"; _commander_fd probe; '
+                        'printf "%s\\n" "${FZF_DEFAULT_COMMAND-unset}" "${FZF_ALT_C_COMMAND-unset}"')
+                result = self.run_shell(shell, code, env={'PATH': str(tools)})
+                self.assertIn('unset\nunset', result.stdout)
+                (tools / 'fdfind').write_text('#!/bin/sh\necho "fdfind $*"\n')
+                (tools / 'fdfind').chmod(0o700)
+                result = self.run_shell(shell, code, env={'PATH': str(tools)})
+                self.assertIn('fdfind probe', result.stdout)
+                self.assertTrue(result.stdout.splitlines()[1].startswith('fdfind '), result.stdout)
+
+    def test_preview_expands_only_a_home_tilde(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            (home / '~notes.txt').write_text('literal tilde\n')
+            (home / 'sub').mkdir()
+            for name in ('~notes.txt', '~/sub'):
+                result = subprocess.run(['bash', str(ROOT / 'modules/fzf-preview'), name], cwd=home,
+                                        env=dict(os.environ, HOME=str(home)), text=True, capture_output=True)
+                self.assertNotIn('File not found', result.stdout)
+
+    def test_search_preview_works_without_bat(self):
+        import base64
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'found.txt'
+            target.write_text('first\nsecond\n')
+            token = base64.b64encode(json.dumps([base64.b64encode(bytes(target)).decode(), 2]).encode()).decode()
+            result = subprocess.run([shutil.which('python3'), str(ROOT / 'modules/fzf-rg'), '--preview', token],
+                                    env=dict(os.environ, PATH=directory), text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('second', result.stdout)
