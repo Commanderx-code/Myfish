@@ -67,9 +67,8 @@ def discover(config):
         raise ValueError('Settings must match the current user and home directory.')
     active = generation()
     if receipt.get('pending'):
-        if not all(isinstance(receipt.get(key), str) for key in ('generation', 'recovery')):
-            record = install_state.directory() / 'installation.json'
-            raise RuntimeError(f'Unfinished maintenance in {record} has no generation or recovery path. Restore from a recovery-* folder beside it.')
+        if not all(isinstance(receipt.get(key), str) and Path(receipt[key]).is_absolute() for key in ('generation', 'recovery')):
+            raise RuntimeError(f'Unfinished maintenance in {install_state.record()} has no generation or recovery path. Restore from a recovery-* folder beside it.')
         if active != Path(receipt['generation']):
             raise RuntimeError(f"Previous maintenance is incomplete. Restore with {restore_command(Path(receipt['recovery']))}")
         receipt.pop('pending')
