@@ -67,25 +67,23 @@ def discover(config, removing=True):
         raise ValueError('Settings must match the current user and home directory.')
     active = generation()
     if receipt.get('pending'):
-        if not all(isinstance(receipt.get(key), str) and Path(receipt[key]).is_absolute() for key in ('generation', 'recovery')):
-            raise RuntimeError(f'Unfinished maintenance in {install_state.record()} has no generation or recovery path. Restore from a recovery-* folder beside it.')
+        usable = {key: isinstance(receipt.get(key), str) and Path(receipt[key]).is_absolute() for key in ('generation', 'recovery')}
+        if not all(usable.values()):
+            # Restoring the recovery generation is safe whether or not activation had started.
+            hint = (f"Restore with {restore_command(Path(receipt['recovery']))}" if usable['recovery']
+                    else 'Restore from a recovery-* folder beside it.')
+            raise RuntimeError(f'Unfinished maintenance in {install_state.record()} is missing its generation or recovery path. {hint}')
         if active != Path(receipt['generation']):
             raise RuntimeError(f"Previous maintenance is incomplete. Restore with {restore_command(Path(receipt['recovery']))}")
         receipt.pop('pending')
+    if active and receipt.get('generation') != str(active):
+        problem = unrecognized(active)
+        if problem and receipt.get('backend') in ('native', 'detached', 'removed'):
+            # That generation belongs to another Home Manager setup; the recorded one is what to manage.
+            active = None
+        elif problem:
+            raise RuntimeError(problem)
     if active:
-        if receipt.get('generation') != str(active):
-            # Legacy releases had no receipt. Require both project-specific assets.
-            for name in ('.local/bin/fzf-preview', '.config/starship.toml'):
-                source = ROOT / ('modules/fzf-preview' if name.endswith('fzf-preview') else 'modules/starship.toml')
-                installed = active / 'home-files' / name
-                if not installed.is_file():
-                    raise RuntimeError('The active Home Manager generation is not recognizable as Myfish.')
-                # HM serializes TOML, so the preview is the exact fingerprint; Starship must have our format.
-                if name.endswith('fzf-preview') and installed.read_bytes() != source.read_bytes():
-                    raise RuntimeError('Refusing to remove an unrecognized Home Manager generation.')
-                # Older generations drew a ╭ corner; current ones name the palette's segment colours.
-                if name.endswith('starship.toml') and not any(mark in installed.read_text().lower() for mark in ('╭', '\\u256d', 'prompt_dark')):
-                    raise RuntimeError('Home Manager theme does not match the Myfish setup.')
         receipt.update(backend='home-manager', generation=str(active), machine=machine)
     elif receipt.get('backend') == 'home-manager':
         if removing:
@@ -93,7 +91,7 @@ def discover(config, removing=True):
         receipt.update(backend='removed', machine=machine)
     elif not receipt.get('backend'):
         receipt.update(backend='native', machine=machine, legacy=True)
-        config_home = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config')))
+        config_home = host.xdg('XDG_CONFIG_HOME')
         for shell in ('bash', 'fish', 'zsh'):
             sample = copy.deepcopy(machine)
             sample['shell'] = shell
@@ -104,6 +102,23 @@ def discover(config, removing=True):
         if not receipt['files']:
             raise RuntimeError('No recorded or recognizable Myfish installation found.')
     return receipt, machine
+
+
+def unrecognized(active):
+    """Why the active Home Manager generation is not Myfish's, or None when it is."""
+    # Legacy releases had no receipt. Require both project-specific assets.
+    for name in ('.local/bin/fzf-preview', '.config/starship.toml'):
+        source = ROOT / ('modules/fzf-preview' if name.endswith('fzf-preview') else 'modules/starship.toml')
+        installed = active / 'home-files' / name
+        if not installed.is_file():
+            return 'The active Home Manager generation is not recognizable as Myfish.'
+        # HM serializes TOML, so the preview is the exact fingerprint; Starship must have our format.
+        if name.endswith('fzf-preview') and installed.read_bytes() != source.read_bytes():
+            return 'Refusing to remove an unrecognized Home Manager generation.'
+        # Older generations drew a ╭ corner; current ones name the palette's segment colours.
+        if name.endswith('starship.toml') and not any(mark in installed.read_text().lower() for mark in ('╭', '\\u256d', 'prompt_dark')):
+            return 'Home Manager theme does not match the Myfish setup.'
+    return None
 
 
 def managed_files(active):
@@ -467,7 +482,7 @@ def main():
     parser.add_argument('--action', choices=('remove', 'reinstall', 'detach', 'status'))
     parser.add_argument('--components', default='all', help='all or comma-separated shell,neovim,development')
     parser.add_argument('--apply', action='store_true', help='ask for confirmation; explicit CLI actions default to preview')
-    parser.add_argument('--config', type=Path, default=Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'commander-os/machine.json')
+    parser.add_argument('--config', type=Path, default=host.xdg('XDG_CONFIG_HOME') / 'commander-os/machine.json')
     args = parser.parse_args()
     if sys.platform not in ('linux', 'darwin') or os.geteuid() == 0:
         raise ValueError('Run as your normal Linux or macOS user, without sudo.')

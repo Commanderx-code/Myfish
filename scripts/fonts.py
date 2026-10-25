@@ -7,6 +7,7 @@ import subprocess
 import tarfile
 import tempfile
 
+import host
 import install_state
 
 VERSION = '3.4.0'
@@ -25,7 +26,7 @@ def needed():
 
 
 def install(home, receipt):
-    directory = Path(os.environ.get('XDG_DATA_HOME', str(home / '.local/share'))) / 'fonts/commander-os'
+    directory = host.xdg('XDG_DATA_HOME', home) / 'fonts/commander-os'
     if not directory.is_absolute() or '..' in directory.parts or not directory.is_relative_to(home):
         raise RuntimeError('Font installation requires XDG_DATA_HOME inside your home directory')
     if any(path.is_symlink() for path in [directory, *directory.parents] if path.is_relative_to(home)):
