@@ -160,8 +160,12 @@ if status is-interactive
     if command -q zoxide
         zoxide init fish | source
     end
-    if test -r /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish
-        source /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish
+    # Arch and Fedora ship fzf's bindings here; Debian keeps them with the examples.
+    for commander_fzf in /usr/share/fish/vendor_functions.d/fzf_key_bindings.fish /usr/share/doc/fzf/examples/key-bindings.fish
+        if test -r $commander_fzf
+            source $commander_fzf
+            break
+        end
     end
     fish_user_key_bindings
 end

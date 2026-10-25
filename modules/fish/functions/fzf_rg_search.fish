@@ -16,9 +16,9 @@ function fzf_rg_search --description "Search text with ripgrep + fzf and open th
 
     set -l pick (
         "$HOME/.local/bin/fzf-rg" \
-            --glob '!.git/*' \
-            --glob '!node_modules/*' \
-            --glob '!.cache/*' \
+            --glob '!**/.git/**' \
+            --glob '!**/node_modules/**' \
+            --glob '!**/.cache/**' \
             --glob '!.local/share/Trash/*' \
             --glob '!.local/share/Steam/*' \
             -- "$q" "$PWD" | string split0
