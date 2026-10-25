@@ -3,7 +3,10 @@
 file="${1:-}"
 [ -z "$file" ] && exit 0
 
-file="${file/#\~/$HOME}"
+# fd prints a file named ~notes as is, so expand only ~ and ~/... that do not exist.
+if [ ! -e "$file" ]; then
+    case $file in \~|\~/*) file="$HOME${file#\~}" ;; esac
+fi
 
 if [ ! -e "$file" ]; then
     echo "File not found:"
