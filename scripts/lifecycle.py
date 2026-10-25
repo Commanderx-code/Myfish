@@ -68,8 +68,7 @@ def discover(config):
     active = generation()
     if receipt.get('pending'):
         if active != Path(receipt['generation']):
-            command = shlex.quote(str(Path(receipt['recovery']) / 'generation/activate'))
-            raise RuntimeError(f'Previous maintenance is incomplete. Restore with HOME_MANAGER_BACKUP_EXT=commander-recovery {command}')
+            raise RuntimeError(f"Previous maintenance is incomplete. Restore with {restore_command(receipt['recovery'])}")
         receipt.pop('pending')
     if active:
         if receipt.get('generation') != str(active):
@@ -136,6 +135,11 @@ def recovery(files, receipt):
     (directory / 'installation.json').write_text(json.dumps(receipt, indent=2))
     print(f'Recovery backup: {directory}', flush=True)
     return directory
+
+
+def restore_command(backup):
+    # A fresh suffix each time: Home Manager stops when a backup it would write already exists.
+    return f'HOME_MANAGER_BACKUP_EXT=commander-recovery-{time.time_ns()} ' + shlex.quote(str(Path(backup) / 'generation/activate'))
 
 
 def fallback_shell():
@@ -259,8 +263,7 @@ def remove_hm(receipt, machine, detach, apply):
             if detach and os.access(original_shell, os.X_OK) and original_shell in Path('/etc/shells').read_text().splitlines():
                 set_login(original_shell)
         except (OSError, RuntimeError, subprocess.CalledProcessError, KeyboardInterrupt):
-            command = f'HOME_MANAGER_BACKUP_EXT=commander-recovery-{time.time_ns()} ' + shlex.quote(str(backup / 'generation/activate'))
-            print(f'Maintenance stopped. Recovery backup: {backup}\nRestore the previous generation with:\n{command}', file=sys.stderr)
+            print(f'Maintenance stopped. Recovery backup: {backup}\nRestore the previous generation with:\n{restore_command(backup)}', file=sys.stderr)
             raise
     print('Home Manager removed. Reopen your terminal.' if detach else 'Myfish removed; Nix and recovery backups retained.')
     return True
@@ -474,8 +477,6 @@ def main():
     receipt, machine = discover(args.config)
     print('Detected:', receipt['backend'])
     print('Scope: Myfish for this account. Nix, Homebrew, personal files and recovery backups stay.')
-    if receipt.get('pending'):
-        raise RuntimeError(f"A previous operation stopped partway through. Restore its generation first: {receipt.get('recovery')}/generation/activate")
     if args.action == 'status':
         print(json.dumps({'backend': receipt['backend'], 'machine': machine, 'recorded_files': len(receipt['files']), 'recorded_packages': receipt['packages']}, indent=2))
     elif args.action == 'detach':
