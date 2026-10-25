@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
@@ -262,6 +263,39 @@ class LifecycleTests(unittest.TestCase):
                      self.assertRaisesRegex(RuntimeError, 'installation.json'):
                     lifecycle.discover(config)
 
+    def test_failed_shell_change_after_detach_keeps_the_detached_record(self):
+        active, target = self.hm_fixture()
+        def run(command, **kwargs):
+            if command == ['/remove/activate']:
+                target.unlink()
+        stderr = io.StringIO()
+        with patch.object(lifecycle, 'build_hm', return_value=[Path('/remove'), Path('/retained')]), \
+             patch.object(lifecycle.pwd, 'getpwuid', return_value=SimpleNamespace(pw_shell='/bin/sh')), \
+             patch.object(lifecycle, 'set_login', side_effect=[None, subprocess.CalledProcessError(1, ['chsh'])]), \
+             patch.object(lifecycle.subprocess, 'run', side_effect=run), \
+             patch('builtins.input', return_value='DETACH'), contextlib.redirect_stderr(stderr):
+            with self.assertRaises(subprocess.CalledProcessError):
+                lifecycle.remove_hm({'generation': str(active)}, {}, True, True)
+        self.assertEqual(install_state.load()['backend'], 'detached')
+        self.assertNotIn('generation/activate', stderr.getvalue())
+        self.assertIn('chsh -s /bin/sh', stderr.getvalue())
+
+    def test_record_that_is_not_an_object_is_rejected(self):
+        install_state.directory().mkdir(parents=True)
+        for text in ('null', '[]', '3'):
+            with self.subTest(text=text):
+                install_state.record().write_text(text)
+                with self.assertRaises(ValueError):
+                    install_state.load()
+
+    def test_stale_generation_still_allows_status_and_reinstall(self):
+        config = self.save_pending_receipt(generation=str(self.home / 'gone'), pending=None)
+        with patch.object(lifecycle, 'generation', return_value=None):
+            with self.assertRaisesRegex(RuntimeError, 'stale removal'):
+                lifecycle.discover(config)
+            receipt, _ = lifecycle.discover(config, removing=False)
+        self.assertEqual(receipt['backend'], 'removed')
+
     def test_full_reinstall_preserves_disabled_features(self):
         machine = {'shell': 'bash', 'features': {'fish': False, 'neovim': False, 'development': False}}
         output = io.StringIO()
@@ -292,7 +326,6 @@ class LifecycleTests(unittest.TestCase):
         self.assertIn(path, files)
 
     def test_native_records_only_previously_absent_packages(self):
-        from types import SimpleNamespace
         machine = self.machine('example')
         with patch.object(lifecycle.native, 'package_plan', return_value=['eza', 'jq']), \
              patch.object(lifecycle.native, 'package_installed', side_effect=[True, False, True]), \
