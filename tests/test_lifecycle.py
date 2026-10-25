@@ -304,10 +304,11 @@ class LifecycleTests(unittest.TestCase):
         self.assertIn('"development": false', output.getvalue())
         self.assertIn('"neovim": false', output.getvalue())
 
-    def test_full_hm_removal_restores_earliest_backup(self):
+    def test_full_hm_removal_restores_the_newest_backup(self):
+        # A file edited between two installs is backed up again; the edit must come back.
         active, target = self.hm_fixture()
-        target.with_name(target.name + '.commander-os-2').write_text('original')
-        target.with_name(target.name + '.commander-os-100').write_text('later')
+        target.with_name(target.name + '.commander-os-2').write_text('first install')
+        target.with_name(target.name + '.commander-os-100').write_text('edited before reinstall')
         def run(command, **kwargs):
             if command == ['/remove/activate']:
                 target.unlink()
@@ -315,7 +316,7 @@ class LifecycleTests(unittest.TestCase):
              patch.object(lifecycle, 'set_login'), patch.object(lifecycle.subprocess, 'run', side_effect=run), \
              patch('builtins.input', return_value='REMOVE'):
             lifecycle.remove_hm({'generation': str(active)}, {}, False, True)
-        self.assertEqual(target.read_text(), 'original')
+        self.assertEqual(target.read_text(), 'edited before reinstall')
 
     def test_neovim_removal_allows_reinstall(self):
         path = self.file('.config/nvim/init.lua')
