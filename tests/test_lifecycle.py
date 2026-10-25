@@ -328,6 +328,7 @@ class LifecycleTests(unittest.TestCase):
     def test_native_records_only_previously_absent_packages(self):
         machine = self.machine('example')
         with patch.object(lifecycle.native, 'package_plan', return_value=['eza', 'jq']), \
+             patch.object(lifecycle.native, 'apt_has_package', return_value=True), \
              patch.object(lifecycle.native, 'package_installed', side_effect=[True, False, True]), \
              patch.object(lifecycle.native.shutil, 'which', return_value='/fixture'), \
              patch.object(lifecycle.native.pwd, 'getpwuid', return_value=SimpleNamespace(pw_name='example')), \
