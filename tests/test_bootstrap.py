@@ -73,6 +73,19 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(prompts, 1)
 
+    def test_rejects_settings_that_are_not_an_object(self):
+        for machine in (None, [], 3, [[1]]):
+            with self.subTest(machine=machine), self.assertRaises(ValueError):
+                bootstrap.validate(machine)
+
+    def test_home_manager_refuses_a_recorded_direct_install(self):
+        record = self.root / 'state/commander-os/installation.json'
+        record.parent.mkdir(parents=True)
+        record.write_text(json.dumps({'version': 1, 'backend': 'native', 'files': {}, 'packages': ['fish']}))
+        with self.assertRaisesRegex(RuntimeError, 'uninstall.sh'):
+            self.run_preview(apply=True, answer='APPLY')
+        self.assertEqual(json.loads(record.read_text())['packages'], ['fish'])
+
     def test_confirmed_activation_uses_backup_suffix(self):
         calls, prompts = self.run_preview(apply=True, answer='APPLY')
         self.assertEqual(len(calls), 2)

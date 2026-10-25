@@ -57,7 +57,7 @@ def component(path):
     return 'shell'
 
 
-def discover(config):
+def discover(config, removing=True):
     receipt = install_state.load()
     machine = bootstrap.validate(json.loads(config.read_text())) if config.exists() else receipt.get('machine')
     if not machine:
@@ -88,7 +88,9 @@ def discover(config):
                     raise RuntimeError('Home Manager theme does not match the Myfish setup.')
         receipt.update(backend='home-manager', generation=str(active), machine=machine)
     elif receipt.get('backend') == 'home-manager':
-        raise RuntimeError('The recorded Home Manager generation is no longer active; refusing stale removal.')
+        if removing:
+            raise RuntimeError('The recorded Home Manager generation is no longer active; refusing stale removal.')
+        receipt.update(backend='removed', machine=machine)
     elif not receipt.get('backend'):
         receipt.update(backend='native', machine=machine, legacy=True)
         config_home = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config')))
@@ -262,10 +264,15 @@ def remove_hm(receipt, machine, detach, apply):
                         else:
                             copy_path(old, path)
             install_state.save(updated)
-            if detach and os.access(original_shell, os.X_OK) and original_shell in Path('/etc/shells').read_text().splitlines():
-                set_login(original_shell)
         except (OSError, RuntimeError, subprocess.CalledProcessError, KeyboardInterrupt):
             print(f'Maintenance stopped. Recovery backup: {backup}\nRestore the previous generation with:\n{restore_command(backup)}', file=sys.stderr)
+            raise
+    # Detaching is complete here; restoring the generation would undo it.
+    if detach and os.access(original_shell, os.X_OK) and original_shell in Path('/etc/shells').read_text().splitlines():
+        try:
+            set_login(original_shell)
+        except (RuntimeError, subprocess.CalledProcessError, KeyboardInterrupt):
+            print(f'Home Manager was detached, but the login shell was not changed back. Run: chsh -s {shlex.quote(original_shell)}', file=sys.stderr)
             raise
     print('Home Manager removed. Reopen your terminal.' if detach else 'Myfish removed; Nix and recovery backups retained.')
     return True
@@ -476,7 +483,7 @@ def main():
         raise ValueError('Select all or shell,neovim,development.')
     if args.apply and not sys.stdin.isatty():
         raise ValueError('Apply requires an interactive terminal for confirmation.')
-    receipt, machine = discover(args.config)
+    receipt, machine = discover(args.config, args.action in ('remove', 'detach'))
     print('Detected:', receipt['backend'])
     print('Scope: Myfish for this account. Nix, Homebrew, personal files and recovery backups stay.')
     if args.action == 'status':
