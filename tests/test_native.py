@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -149,6 +150,55 @@ class NativeTests(unittest.TestCase):
         self.assertLess(init.index('bash.sh'), init.index('ble-finish.sh'))
         self.assertNotIn('for commander_fzf', init)
         self.assertIn(self.home / '.config/commander-os/shell/ble-start.sh', files)
+
+    def test_dnf_plans_the_package_that_provides_7z(self):
+        self.machine['shell'] = 'bash'
+        with patch.object(native.shutil, 'which', side_effect=lambda name: None if name in ('7z', '7zz') else '/fixture'):
+            self.assertIn('p7zip-plugins', native.package_plan(self.machine, 'dnf'))
+
+    def test_shell_init_adds_local_bin_to_path_once(self):
+        for shell in ('bash', 'zsh'):
+            self.machine['shell'] = shell
+            init = native.config_files(self.machine, self.home, self.home / '.config')[self.home / f'.config/commander-os/init.{shell}']
+            path_lines = [line for line in init.splitlines() if '.local/bin:$PATH' in line]
+            self.assertEqual(len(path_lines), 1)
+            self.assertTrue(path_lines[0].startswith('case ":$PATH:"'), path_lines[0])
+
+    def apply_with(self, packages, run):
+        with patch.object(native, 'package_plan', return_value=packages), \
+             patch.object(native, 'package_installed', return_value=True), \
+             patch.object(native.shutil, 'which', return_value='/fixture'), \
+             patch.object(Path, 'home', return_value=self.home), \
+             patch.object(native.pwd, 'getpwuid', return_value=SimpleNamespace(pw_name='example')), \
+             patch('builtins.input', return_value='APPLY'), \
+             patch.object(native.subprocess, 'run', side_effect=run):
+            native.install_native(self.machine, apply=True, install_missing=True, configure_login=lambda *a, **kw: None)
+
+    def test_apt_without_eza_installs_the_rest(self):
+        self.machine['shell'] = 'keep'
+        commands = []
+        def run(command, **kwargs):
+            commands.append(command)
+            return SimpleNamespace(stdout='  Candidate: (none)\n' if command[:2] == ['apt-cache', 'policy'] else '')
+        self.apply_with(['eza', 'jq'], run)
+        self.assertIn(['sudo', 'apt-get', 'install', '-y', 'jq'], commands)
+
+    def test_failed_ble_build_still_records_its_files(self):
+        self.machine['shell'] = 'bash'
+        share = self.home / '.local/share'
+        def run(command, **kwargs):
+            if command[0] == 'make':
+                for path in (share / 'blesh/ble.sh', share / 'doc/blesh/README.md'):
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text('partial')
+                raise subprocess.CalledProcessError(2, command)
+            return SimpleNamespace(stdout='')
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.apply_with([], run)
+        files = native.install_state.load()['files']
+        for path in (share / 'blesh/ble.sh', share / 'doc/blesh/README.md'):
+            self.assertIsNone(files[str(path)]['original'])
+            self.assertEqual(files[str(path)]['installed'], native.install_state.digest(path))
 
     def test_bash_preview_does_not_download_ble(self):
         self.machine['shell'] = 'bash'

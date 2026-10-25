@@ -26,11 +26,17 @@ if command -q lazygit
     alias lg lazygit
 end
 # Search defaults; no forced sixel output unless the user opens a preview.
-set -l finder fd
-command -q fd; or set finder fdfind
-set -q FZF_DEFAULT_COMMAND; or set -gx FZF_DEFAULT_COMMAND "$finder --type f --hidden --exclude .git --exclude node_modules --exclude .cache"
-set -q FZF_CTRL_T_COMMAND; or set -gx FZF_CTRL_T_COMMAND "$FZF_DEFAULT_COMMAND"
-set -q FZF_ALT_C_COMMAND; or set -gx FZF_ALT_C_COMMAND "$finder --type d --hidden --exclude .git --exclude node_modules --exclude .cache"
+# Without fd, fzf's own walker lists files.
+if command -q fd; or command -q fdfind
+    set -l finder fd
+    command -q fd; or set finder fdfind
+    set -l excludes --hidden --exclude .git --exclude node_modules --exclude .cache
+    set -q FZF_DEFAULT_COMMAND; or set -gx FZF_DEFAULT_COMMAND "$finder --type f $excludes"
+    # fzf's widgets evaluate these in fish with $dir set to the typed directory.
+    # They stay unexported because other shells run them without $dir.
+    set -q FZF_CTRL_T_COMMAND; or set -g FZF_CTRL_T_COMMAND "$finder --type f $excludes --search-path \"\$dir\""
+    set -q FZF_ALT_C_COMMAND; or set -g FZF_ALT_C_COMMAND "$finder --type d $excludes --search-path \"\$dir\""
+end
 set -l preview 'bash '(string escape -- "$HOME/.local/bin/fzf-preview")' {}'
 set -q FZF_DEFAULT_OPTS; or set -gx FZF_DEFAULT_OPTS '--layout=reverse --border --ansi --preview-window=right,60%,nowrap --bind=ctrl-/:toggle-preview'
 set -q FZF_CTRL_T_OPTS; or set -gx FZF_CTRL_T_OPTS '--preview='(string escape -- "$preview")

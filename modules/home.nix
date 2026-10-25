@@ -118,6 +118,8 @@ in
   };
   programs.zsh = lib.mkIf (shell == "zsh") {
     enable = true;
+    # Keep ~/.zshrc and ~/.zsh_history where existing Zsh setups have them.
+    dotDir = machine.homeDirectory;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
     initContent = lib.mkAfter ''

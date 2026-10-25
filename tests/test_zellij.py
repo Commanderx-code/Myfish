@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -18,6 +19,9 @@ class ZellijTests(unittest.TestCase):
         self.config = self.home / 'config'
         self.machine = {'username': 'test', 'homeDirectory': str(self.home), 'shell': 'fish',
                         'features': {'fish': True, 'neovim': False, 'development': False}}
+        env = patch.dict(os.environ, XDG_STATE_HOME=str(self.home / 'state'))
+        env.start()
+        self.addCleanup(env.stop)
 
     def test_package_plans_include_missing_zellij_for_all_shells(self):
         for shell in ('fish', 'bash', 'zsh', 'keep'):
@@ -56,6 +60,17 @@ class ZellijTests(unittest.TestCase):
         target.symlink_to(self.home / 'missing-managed-target')
         self.assertNotIn(target, native.config_files(self.machine, self.home, self.config))
 
+    def test_installer_config_follows_a_new_shell_until_edited(self):
+        target = self.config / 'zellij/config.kdl'
+        receipt = native.install_state.load()
+        native.write_configs(native.config_files(self.machine, self.home, self.config), receipt)
+        self.machine['shell'] = 'zsh'
+        native.write_configs(native.config_files(self.machine, self.home, self.config), receipt)
+        self.assertIn('default_shell "zsh"', target.read_text())
+        target.write_text(target.read_text() + '// personal\n')
+        self.machine['shell'] = 'bash'
+        self.assertNotIn(target, native.config_files(self.machine, self.home, self.config))
+
     def test_apt_package_probe(self):
         for candidate, expected in (('0.44.3', True), ('(none)', False)):
             with patch.object(native.subprocess, 'run', return_value=SimpleNamespace(stdout=f'  Candidate: {candidate}\n')) as run:
@@ -63,7 +78,6 @@ class ZellijTests(unittest.TestCase):
                 self.assertEqual(run.call_args.args[0], ['apt-cache', 'policy', 'zellij'])
 
     def test_missing_apt_candidate_stops_before_installing_or_writing(self):
-        import os
         with patch.dict(os.environ, XDG_CONFIG_HOME=str(self.config), XDG_STATE_HOME=str(self.home / 'state')), \
              patch.object(native.host, 'is_macos', return_value=False), \
              patch.object(native.shutil, 'which', return_value='/fixture'), \

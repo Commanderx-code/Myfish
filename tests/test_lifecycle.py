@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
@@ -224,16 +225,18 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(install_state.load()['pending'], 'detach')
         self.assertRegex(stderr.getvalue(), r'HOME_MANAGER_BACKUP_EXT=commander-recovery-\d+ \S+/generation/activate')
 
-    def pending_receipt(self, generation):
-        machine = {'username': lifecycle.pwd.getpwuid(os.getuid()).pw_name, 'homeDirectory': str(self.home),
-                   'system': 'x86_64-linux', 'features': {'fish': False, 'neovim': False, 'development': False}}
-        install_state.save({'version': 1, 'backend': 'home-manager', 'machine': machine, 'files': {}, 'packages': [],
-                            'generation': str(generation), 'recovery': str(self.home / 'recovery'), 'pending': 'remove'})
+    def machine(self, username):
+        return {'username': username, 'homeDirectory': str(self.home), 'system': 'x86_64-linux',
+                'shell': 'keep', 'features': {'fish': False, 'neovim': False, 'development': False}}
+
+    def save_pending_receipt(self, **fields):
+        record = {'version': 1, 'backend': 'home-manager', 'machine': self.machine(lifecycle.pwd.getpwuid(os.getuid()).pw_name),
+                  'files': {}, 'packages': [], 'recovery': str(self.home / 'recovery'), 'pending': 'remove'}
+        install_state.save({**record, **fields})
         return self.home / 'no-machine.json'
 
     def test_interrupted_maintenance_gives_a_fresh_backup_suffix(self):
-        # Home Manager stops when a backup it would write already exists, so a second restore needs a new suffix.
-        config = self.pending_receipt(self.home / 'old-generation')
+        config = self.save_pending_receipt(generation=str(self.home / 'old-generation'))
         messages = []
         for _ in range(2):
             with patch.object(lifecycle, 'generation', return_value=self.home / 'new-generation'), \
@@ -246,10 +249,52 @@ class LifecycleTests(unittest.TestCase):
 
     def test_unchanged_generation_clears_the_pending_marker(self):
         active = self.home / 'generation'
-        config = self.pending_receipt(active)
+        config = self.save_pending_receipt(generation=str(active))
         with patch.object(lifecycle, 'generation', return_value=active):
             receipt, _ = lifecycle.discover(config)
         self.assertNotIn('pending', receipt)
+
+    def test_damaged_pending_record_stops_with_a_message(self):
+        active = self.home / 'generation'
+        for damage in ({}, {'generation': None}, {'generation': str(active), 'recovery': None}, {'generation': str(active), 'recovery': ''}):
+            with self.subTest(damage=damage):
+                config = self.save_pending_receipt(**damage)
+                with patch.object(lifecycle, 'generation', return_value=active), \
+                     self.assertRaisesRegex(RuntimeError, 'installation.json'):
+                    lifecycle.discover(config)
+
+    def test_failed_shell_change_after_detach_keeps_the_detached_record(self):
+        active, target = self.hm_fixture()
+        def run(command, **kwargs):
+            if command == ['/remove/activate']:
+                target.unlink()
+        stderr = io.StringIO()
+        with patch.object(lifecycle, 'build_hm', return_value=[Path('/remove'), Path('/retained')]), \
+             patch.object(lifecycle.pwd, 'getpwuid', return_value=SimpleNamespace(pw_shell='/bin/sh')), \
+             patch.object(lifecycle, 'set_login', side_effect=[None, subprocess.CalledProcessError(1, ['chsh'])]), \
+             patch.object(lifecycle.subprocess, 'run', side_effect=run), \
+             patch('builtins.input', return_value='DETACH'), contextlib.redirect_stderr(stderr):
+            with self.assertRaises(subprocess.CalledProcessError):
+                lifecycle.remove_hm({'generation': str(active)}, {}, True, True)
+        self.assertEqual(install_state.load()['backend'], 'detached')
+        self.assertNotIn('generation/activate', stderr.getvalue())
+        self.assertIn('chsh -s /bin/sh', stderr.getvalue())
+
+    def test_record_that_is_not_an_object_is_rejected(self):
+        install_state.directory().mkdir(parents=True)
+        for text in ('null', '[]', '3'):
+            with self.subTest(text=text):
+                install_state.record().write_text(text)
+                with self.assertRaises(ValueError):
+                    install_state.load()
+
+    def test_stale_generation_still_allows_status_and_reinstall(self):
+        config = self.save_pending_receipt(generation=str(self.home / 'gone'), pending=None)
+        with patch.object(lifecycle, 'generation', return_value=None):
+            with self.assertRaisesRegex(RuntimeError, 'stale removal'):
+                lifecycle.discover(config)
+            receipt, _ = lifecycle.discover(config, removing=False)
+        self.assertEqual(receipt['backend'], 'removed')
 
     def test_full_reinstall_preserves_disabled_features(self):
         machine = {'shell': 'bash', 'features': {'fish': False, 'neovim': False, 'development': False}}
@@ -259,10 +304,11 @@ class LifecycleTests(unittest.TestCase):
         self.assertIn('"development": false', output.getvalue())
         self.assertIn('"neovim": false', output.getvalue())
 
-    def test_full_hm_removal_restores_earliest_backup(self):
+    def test_full_hm_removal_restores_the_newest_backup(self):
+        # A file edited between two installs is backed up again; the edit must come back.
         active, target = self.hm_fixture()
-        target.with_name(target.name + '.commander-os-2').write_text('original')
-        target.with_name(target.name + '.commander-os-100').write_text('later')
+        target.with_name(target.name + '.commander-os-2').write_text('first install')
+        target.with_name(target.name + '.commander-os-100').write_text('edited before reinstall')
         def run(command, **kwargs):
             if command == ['/remove/activate']:
                 target.unlink()
@@ -270,7 +316,7 @@ class LifecycleTests(unittest.TestCase):
              patch.object(lifecycle, 'set_login'), patch.object(lifecycle.subprocess, 'run', side_effect=run), \
              patch('builtins.input', return_value='REMOVE'):
             lifecycle.remove_hm({'generation': str(active)}, {}, False, True)
-        self.assertEqual(target.read_text(), 'original')
+        self.assertEqual(target.read_text(), 'edited before reinstall')
 
     def test_neovim_removal_allows_reinstall(self):
         path = self.file('.config/nvim/init.lua')
@@ -281,10 +327,9 @@ class LifecycleTests(unittest.TestCase):
         self.assertIn(path, files)
 
     def test_native_records_only_previously_absent_packages(self):
-        from types import SimpleNamespace
-        machine = {'username': 'example', 'homeDirectory': str(self.home), 'system': 'x86_64-linux',
-                   'shell': 'keep', 'features': {'fish': False, 'neovim': False, 'development': False}}
+        machine = self.machine('example')
         with patch.object(lifecycle.native, 'package_plan', return_value=['eza', 'jq']), \
+             patch.object(lifecycle.native, 'apt_has_package', return_value=True), \
              patch.object(lifecycle.native, 'package_installed', side_effect=[True, False, True]), \
              patch.object(lifecycle.native.shutil, 'which', return_value='/fixture'), \
              patch.object(lifecycle.native.pwd, 'getpwuid', return_value=SimpleNamespace(pw_name='example')), \
