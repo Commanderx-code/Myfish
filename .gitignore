@@ -21,3 +21,4 @@ system-backup/
 __pycache__/
 *.pyc
 *.log
+/graphify-out/
