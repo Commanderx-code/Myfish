@@ -151,20 +151,22 @@ SOFTWARE.
             "text": "{ iwgetid -r 2>/dev/null || nmcli -t -f active,ssid dev wifi 2>/dev/null | LC_ALL=C awk '/^yes:/ {n++; s = substr($0, 5); gsub(/\\\\:/, \":\", s)} END {if (n == 1) print s}'; } | LC_ALL=C tr -d '\\000-\\037\\177' | LC_ALL=C awk '{while (gsub(/\\302[\\200-\\237]/, \"\")); print}'"
         },
         {
-            "type": "sound",
+            "type": "command",
             "key": " AUDIO",
-            "format": "{name}",
-            "keyColor": "magenta"
+            "keyColor": "magenta",
+            "text": "fastfetch -c none --logo none --pipe true -s sound --key-type none 2>/dev/null | LC_ALL=C sed 's/ ([^()]*)$//' | LC_ALL=C tr -d '\\000-\\037\\177' | LC_ALL=C awk '{while (gsub(/\\302[\\200-\\237]/, \"\")); print}'"
         },
         {
-            "type": "player",
+            "type": "command",
             "key": "│ ├󰥠 Player",
-            "keyColor": "magenta"
+            "keyColor": "magenta",
+            "text": "fastfetch -c none --logo none --pipe true -s player --key-type none 2>/dev/null | LC_ALL=C tr -d '\\000-\\037\\177' | LC_ALL=C awk '{while (gsub(/\\302[\\200-\\237]/, \"\")); print}'"
         },
         {
-            "type": "media",
+            "type": "command",
             "key": "│ └󰝚 Media",
-            "keyColor": "magenta"
+            "keyColor": "magenta",
+            "text": "fastfetch -c none --logo none --pipe true -s media --key-type none 2>/dev/null | LC_ALL=C tr -d '\\000-\\037\\177' | LC_ALL=C awk '{while (gsub(/\\302[\\200-\\237]/, \"\")); print}'"
         },
         "break",
         {
