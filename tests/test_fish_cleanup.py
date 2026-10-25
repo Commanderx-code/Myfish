@@ -169,3 +169,45 @@ __fzf_starstar_tab
         result = self.run_fish('cdi; pwd')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), str(self.root))
+
+    def test_file_widgets_search_the_typed_directory(self):
+        self.mock('fd', 'printf "%s\\n" "$*"')
+        env = {k: v for k, v in self.env.items() if not k.startswith('FZF_')}
+        code = ('source $argv[1]; set -l dir typed; eval $FZF_CTRL_T_COMMAND; eval $FZF_ALT_C_COMMAND; '
+                'set -qx FZF_CTRL_T_COMMAND; and echo exported; true')
+        result = subprocess.run([FISH, '--no-config', '-i', '-c', code, str(ROOT / 'modules/fish/conf.d/10-commander.fish')],
+                                env=env, cwd=self.root, capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        lines = result.stdout.splitlines()
+        self.assertEqual(len(lines), 2, result.stdout)
+        self.assertTrue(all(line.endswith('--search-path typed') for line in lines), lines)
+
+    def test_no_finder_leaves_fzf_on_its_own_walker(self):
+        self.env['PATH'] = str(self.bin)
+        result = subprocess.run([FISH, '--no-config', '-i', '-c',
+                                 'set -e FZF_DEFAULT_COMMAND; source $argv[1]; set -q FZF_DEFAULT_COMMAND; or echo unset',
+                                 str(ROOT / 'modules/fish/conf.d/10-commander.fish')],
+                                env=self.env, cwd=self.root, capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.stdout.strip(), 'unset', result.stderr)
+
+    def test_starstar_fallback_inserts_the_pick_without_running_the_line(self):
+        (self.root / 'sub').mkdir()
+        self.mock('fd', 'printf "%s\\n" "$*" >> "$TEST_LOG"; printf "sub/picked file\\0"')
+        self.mock('fzf', '/bin/cat')
+        result = self.run_fish('''function commandline
+    if test "$argv" = -t
+        echo 'sub/**'
+    else if test "$argv[1]" = -t
+        set -g token $argv[3]
+    else if test "$argv[1]" = -f
+        set -ga actions $argv[2]
+    else
+        set -ga actions $argv[1]
+    end
+end
+__fzf_starstar_tab
+printf "%s\\n" $token $actions''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines()[0], "'sub/picked file'")
+        self.assertNotIn('execute', result.stdout)
+        self.assertIn('--search-path sub', self.log.read_text())

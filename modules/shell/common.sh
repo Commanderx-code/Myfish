@@ -10,8 +10,12 @@ _commander_editor() {
   echo 'No supported editor found.' >&2
   return 1
 }
+# An fd alias for fdfind satisfies command -v, so look for the executable itself.
+_commander_executable() {
+  if [ -n "${ZSH_VERSION:-}" ]; then whence -p "$1"; else type -P "$1"; fi >/dev/null 2>&1
+}
 _commander_fd() {
-  if command -v fd >/dev/null 2>&1; then command fd "$@"; else command fdfind "$@"; fi
+  if _commander_executable fd; then command fd "$@"; else command fdfind "$@"; fi
 }
 mkcd() {
   [ "$#" -eq 1 ] || { echo 'Usage: mkcd <directory>' >&2; return 1; }
@@ -20,7 +24,7 @@ mkcd() {
 dirsize() { du -sh .; }
 psg() {
   [ "$#" -ge 1 ] || { echo 'Usage: psg <pattern>' >&2; return 1; }
-  if [ "$(uname -s)" = Darwin ]; then pgrep -ifl -- "$1"; else pgrep -ai -- "$1"; fi
+  if [ "$(uname -s)" = Darwin ]; then pgrep -ifl -- "$1"; else pgrep -aif -- "$1"; fi
 }
 serve() { python3 -m http.server --bind 127.0.0.1 "${1:-8000}"; }
 gcom() {
@@ -53,24 +57,27 @@ rgi() {
   [ -n "$query" ] || return 0
   {
     IFS= read -r -d '' line && IFS= read -r -d '' filename
-  } < <("$HOME/.local/bin/fzf-rg" --glob '!.git/*' -- "$query" .) || return 0
+  } < <("$HOME/.local/bin/fzf-rg" --glob '!**/.git/**' -- "$query" .) || return 0
   case "$line" in ''|0*|*[!0-9]*) return 1 ;; esac
   editor=$(_commander_editor) || return
   "$editor" "+$line" -- "$filename"
 }
 extract() {
   [ "$#" -eq 1 ] && [ -f "$1" ] || { echo 'Usage: extract <archive-file>' >&2; return 1; }
-  local archive
+  local archive name
   archive=$(realpath -- "$1") || return
-  case "$archive" in
+  # The given name decides the format; a symlink's target may be named anything.
+  name=${1##*/}
+  case "$name" in
     *.tar|*.tar.gz|*.tgz|*.tar.bz2|*.tbz2|*.tar.xz|*.txz|*.tar.zst) command tar -xf "$archive" ;;
     *.zip) command unzip "$archive" ;;
-    *.gz) command gunzip -- "$archive" ;;
-    *.bz2) command bunzip2 -- "$archive" ;;
-    *.xz) command unxz -- "$archive" ;;
+    # Single-file formats write here too, keep the archive and never overwrite.
+    *.gz) (set -C; command gunzip -c -- "$archive" > "${name%.gz}") ;;
+    *.bz2) (set -C; command bunzip2 -c -- "$archive" > "${name%.bz2}") ;;
+    *.xz) (set -C; command unxz -c -- "$archive" > "${name%.xz}") ;;
     *.7z|*.rar)
       # unrar handles every RAR version; 7-Zip covers the rest.
-      if [ "${archive##*.}" = rar ] && command -v unrar >/dev/null 2>&1; then command unrar x "$archive"
+      if [ "${name##*.}" = rar ] && command -v unrar >/dev/null 2>&1; then command unrar x "$archive"
       elif command -v 7z >/dev/null 2>&1; then command 7z x "$archive"
       elif command -v 7zz >/dev/null 2>&1; then command 7zz x "$archive"
       else echo "Install 7-Zip to extract $archive" >&2; return 1; fi ;;
@@ -137,11 +144,14 @@ alias lx='eza -lh --sort=extension --icons' lk='eza -lh --sort=size --icons' lt=
 alias ldir='eza -l --icons --only-dirs' lf='eza -l --icons --only-files'
 alias lgit='eza -l --git --icons' l1='eza -1 --icons' lr='eza -R --icons'
 fi
-_commander_finder=fd
-command -v fd >/dev/null 2>&1 || _commander_finder=fdfind
-export FZF_DEFAULT_COMMAND="$_commander_finder --type f --hidden --exclude .git --exclude node_modules --exclude .cache"
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-export FZF_ALT_C_COMMAND="$_commander_finder --type d --hidden --exclude .git --exclude node_modules --exclude .cache"
+# Without fd, fzf's own walker lists files.
+_commander_finder=
+if _commander_executable fd; then _commander_finder=fd; elif _commander_executable fdfind; then _commander_finder=fdfind; fi
+if [ -n "$_commander_finder" ]; then
+  export FZF_DEFAULT_COMMAND="$_commander_finder --type f --hidden --exclude .git --exclude node_modules --exclude .cache"
+  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  export FZF_ALT_C_COMMAND="$_commander_finder --type d --hidden --exclude .git --exclude node_modules --exclude .cache"
+fi
 export FZF_DEFAULT_OPTS='--layout=reverse --border --ansi --preview-window=right,60%,nowrap --bind=ctrl-/:toggle-preview'
 unset _commander_finder
 if [ -z "${COMMANDER_QUIET+x}" ]; then

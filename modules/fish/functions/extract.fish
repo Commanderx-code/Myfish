@@ -4,20 +4,23 @@ function extract --description 'Extract an archive into the current directory'
         return 1
     end
     set -l archive (path resolve -- "$argv[1]")
-    switch "$archive"
+    # The given name decides the format; a symlink's target may be named anything.
+    set -l name (path basename -- "$argv[1]")
+    switch "$name"
         case '*.tar' '*.tar.gz' '*.tgz' '*.tar.bz2' '*.tbz2' '*.tar.xz' '*.txz' '*.tar.zst'
             command tar -xf "$archive"
         case '*.zip'
             command unzip "$archive"
+        # Single-file formats write here too, keep the archive and never overwrite.
         case '*.gz'
-            command gunzip -- "$archive"
+            command gunzip -c -- "$archive" >? (string replace -r '\.gz$' '' -- "$name")
         case '*.bz2'
-            command bunzip2 -- "$archive"
+            command bunzip2 -c -- "$archive" >? (string replace -r '\.bz2$' '' -- "$name")
         case '*.xz'
-            command unxz -- "$archive"
+            command unxz -c -- "$archive" >? (string replace -r '\.xz$' '' -- "$name")
         case '*.7z' '*.rar'
             # unrar handles every RAR version; 7-Zip covers the rest.
-            if string match -q '*.rar' -- "$archive"; and command -q unrar
+            if string match -q '*.rar' -- "$name"; and command -q unrar
                 command unrar x "$archive"
             else if command -q 7z
                 command 7z x "$archive"
