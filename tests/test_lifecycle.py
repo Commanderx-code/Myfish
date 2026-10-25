@@ -243,7 +243,8 @@ class LifecycleTests(unittest.TestCase):
                  self.assertRaises(RuntimeError) as error:
                 lifecycle.discover(config)
             messages.append(str(error.exception))
-        suffixes = [re.search(r'HOME_MANAGER_BACKUP_EXT=(commander-recovery-\d+) ', m).group(1) for m in messages]
+        suffixes = [re.findall(r'HOME_MANAGER_BACKUP_EXT=(commander-recovery-\d+) ', m) for m in messages]
+        self.assertEqual([len(found) for found in suffixes], [1, 1], messages)
         self.assertNotEqual(*suffixes)
         self.assertIn(str(self.home / 'recovery/generation/activate'), messages[0])
 
@@ -256,7 +257,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_damaged_pending_record_stops_with_a_message(self):
         active = self.home / 'generation'
-        for damage in ({}, {'generation': None}, {'generation': str(active), 'recovery': None}, {'generation': str(active), 'recovery': ''}):
+        for damage in ({}, {'generation': 'generation'}, {'generation': str(active), 'recovery': None}, {'generation': str(active), 'recovery': ''}):
             with self.subTest(damage=damage):
                 config = self.save_pending_receipt(**damage)
                 with patch.object(lifecycle, 'generation', return_value=active), \
@@ -295,6 +296,35 @@ class LifecycleTests(unittest.TestCase):
                 lifecycle.discover(config)
             receipt, _ = lifecycle.discover(config, removing=False)
         self.assertEqual(receipt['backend'], 'removed')
+
+    def test_damaged_record_with_a_recovery_path_gives_its_restore_command(self):
+        config = self.save_pending_receipt()
+        with patch.object(lifecycle, 'generation', return_value=self.home / 'generation'), \
+             self.assertRaisesRegex(RuntimeError, r'HOME_MANAGER_BACKUP_EXT=commander-recovery-\d+ \S+/recovery/generation/activate'):
+            lifecycle.discover(config)
+
+    def foreign_generation(self):
+        active = self.home / 'other-generation'
+        (active / 'home-files').mkdir(parents=True, exist_ok=True)
+        return active
+
+    def test_direct_install_is_removable_beside_another_home_manager_setup(self):
+        path = self.file()
+        for backend in ('native', 'detached', 'removed'):
+            with self.subTest(backend=backend):
+                self.receipt.update(backend=backend, machine=self.machine(lifecycle.pwd.getpwuid(os.getuid()).pw_name))
+                install_state.save(self.receipt)
+                with patch.object(lifecycle, 'generation', return_value=self.foreign_generation()):
+                    receipt, _ = lifecycle.discover(self.home / 'no-machine.json')
+                self.assertEqual(receipt['backend'], backend)
+                self.assertIn(str(path), receipt['files'])
+
+    def test_unrecognized_generation_is_still_refused_without_a_direct_record(self):
+        self.receipt['machine'] = self.machine(lifecycle.pwd.getpwuid(os.getuid()).pw_name)
+        install_state.save(self.receipt | {'backend': 'home-manager', 'generation': str(self.home / 'gone')})
+        with patch.object(lifecycle, 'generation', return_value=self.foreign_generation()), \
+             self.assertRaisesRegex(RuntimeError, 'not recognizable as Myfish'):
+            lifecycle.discover(self.home / 'no-machine.json')
 
     def test_full_reinstall_preserves_disabled_features(self):
         machine = {'shell': 'bash', 'features': {'fish': False, 'neovim': False, 'development': False}}

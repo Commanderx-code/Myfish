@@ -240,3 +240,24 @@ __done_ended 'ordinary command'
                     result = subprocess.run(['/bin/sh', '-c', command], env=env, capture_output=True, timeout=20)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(result.stdout, expected + b'\n' if expected else b'')
+
+    def test_media_rows_reach_the_terminal_without_control_characters(self):
+        text = (ROOT / 'modules/fastfetch.jsonc').read_text()
+        modules = [m for m in json.loads(text[text.index('\n{'):])['modules'] if isinstance(m, dict)]
+        # Fastfetch prints player and media metadata, which any web page can set, byte for byte.
+        self.assertFalse({'sound', 'player', 'media'} & {m['type'] for m in modules})
+        row = self.home / 'row'
+        self.mock('fastfetch', "Path(os.environ['TEST_LOG']).open('a').write(json.dumps(sys.argv[1:]) + '\\n')\n"
+                               "sys.stdout.buffer.write(Path(os.environ['TEST_ROW']).read_bytes() + b'\\n')")
+        env = dict(self.env, TEST_ROW=str(row))
+        rows = [('AUDIO', b'Speaker\x1b]0;PWNED\x07 (45%)', b'Speaker]0;PWNED'),
+                ('Player', 'Café'.encode() + b'\xc2\x9b2J', 'Café2J'.encode()),
+                ('Media', b'ART\x1b[2J - Song [Playing]', b'ART[2J - Song [Playing]'),
+                ('Media', b'', b'')]
+        for key, value, expected in rows:
+            command = next(m['text'] for m in modules if key in m.get('key', ''))
+            with self.subTest(key=key, value=value):
+                row.write_bytes(value)
+                result = subprocess.run(['/bin/sh', '-c', command], env=env, capture_output=True, timeout=20)
+                self.assertEqual(result.stdout, expected + b'\n' if expected else b'')
+        self.assertTrue(all(call[:2] == ['-c', 'none'] for call in self.calls()))

@@ -2,13 +2,16 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
 import native
 import install_state
 
@@ -52,6 +55,25 @@ class FastfetchTests(unittest.TestCase):
         platform_patch = patch.object(native.host, 'is_macos', return_value=False)
         platform_patch.start()
         self.addCleanup(platform_patch.stop)
+
+    def wifi(self, listing):
+        text = (ROOT / 'modules/fastfetch.jsonc').read_text()
+        command = next(module['text'] for module in json.loads(text[text.index('\n{'):])['modules']
+                       if isinstance(module, dict) and 'Wi-Fi' in module.get('key', ''))
+        with tempfile.TemporaryDirectory() as directory:
+            tools = Path(directory)
+            (tools / 'listing').write_bytes(listing)
+            (tools / 'nmcli').write_text(f'#!/bin/sh\ncat {tools / "listing"}\n')
+            (tools / 'nmcli').chmod(0o700)
+            for name in ('sh', 'cat', 'tr', 'awk'):
+                (tools / name).symlink_to(shutil.which(name))
+            return subprocess.run([str(tools / 'sh'), '-c', command], env={'PATH': str(tools)},
+                                  capture_output=True).stdout
+
+    def test_wifi_name_comes_only_from_the_one_active_network(self):
+        self.assertEqual(self.wifi(b'no:Nearby\nyes:Home\\:Net\n'), b'Home:Net\n')
+        # A nearby network's name with a newline cannot pose as the active one.
+        self.assertEqual(self.wifi(b'no:x\nyes:Spoofed\nyes:Home\n'), b'')
 
     def test_missing_fastfetch_is_planned_for_every_shell_and_manager(self):
         with tempfile.TemporaryDirectory() as home:

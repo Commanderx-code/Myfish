@@ -1,7 +1,17 @@
 """Host/platform details shared by installation and maintenance."""
+import os
 from pathlib import Path
 import platform
 import subprocess
+
+
+XDG_DEFAULTS = {'XDG_CONFIG_HOME': '.config', 'XDG_DATA_HOME': '.local/share', 'XDG_STATE_HOME': '.local/state'}
+
+
+def xdg(name, home=None):
+    # Like the shells' ${XDG_CONFIG_HOME:-$HOME/.config}, and the spec: empty or relative values are ignored.
+    value = os.environ.get(name, '')
+    return Path(value) if os.path.isabs(value) else (home or Path.home()) / XDG_DEFAULTS[name]
 
 
 def is_macos():

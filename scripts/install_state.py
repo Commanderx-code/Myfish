@@ -3,12 +3,13 @@ import base64
 import hashlib
 import json
 import os
-from pathlib import Path
 import tempfile
+
+import host
 
 
 def directory():
-    return Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'commander-os'
+    return host.xdg('XDG_STATE_HOME') / 'commander-os'
 
 
 def record():
