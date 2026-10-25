@@ -78,6 +78,17 @@ class BootstrapTests(unittest.TestCase):
             with self.subTest(machine=machine), self.assertRaises(ValueError):
                 bootstrap.validate(machine)
 
+    def test_empty_or_relative_xdg_directories_fall_back_to_home(self):
+        home = Path('/home/example')
+        for value in ('', 'relative'):
+            with self.subTest(value=value), patch.object(Path, 'home', return_value=home), \
+                 patch.dict(os.environ, XDG_STATE_HOME=value, XDG_CONFIG_HOME=value, XDG_DATA_HOME=value):
+                self.assertEqual(bootstrap.install_state.record(), home / '.local/state/commander-os/installation.json')
+                self.assertEqual(bootstrap.host.xdg('XDG_CONFIG_HOME'), home / '.config')
+                self.assertEqual(bootstrap.host.xdg('XDG_DATA_HOME', Path('/other')), Path('/other/.local/share'))
+        with patch.dict(os.environ, XDG_CONFIG_HOME='/custom'):
+            self.assertEqual(bootstrap.host.xdg('XDG_CONFIG_HOME', home), Path('/custom'))
+
     def test_home_manager_refuses_a_recorded_direct_install(self):
         record = self.root / 'state/commander-os/installation.json'
         record.parent.mkdir(parents=True)

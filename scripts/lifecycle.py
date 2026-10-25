@@ -91,7 +91,7 @@ def discover(config, removing=True):
         receipt.update(backend='removed', machine=machine)
     elif not receipt.get('backend'):
         receipt.update(backend='native', machine=machine, legacy=True)
-        config_home = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config')))
+        config_home = host.xdg('XDG_CONFIG_HOME')
         for shell in ('bash', 'fish', 'zsh'):
             sample = copy.deepcopy(machine)
             sample['shell'] = shell
@@ -482,7 +482,7 @@ def main():
     parser.add_argument('--action', choices=('remove', 'reinstall', 'detach', 'status'))
     parser.add_argument('--components', default='all', help='all or comma-separated shell,neovim,development')
     parser.add_argument('--apply', action='store_true', help='ask for confirmation; explicit CLI actions default to preview')
-    parser.add_argument('--config', type=Path, default=Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'commander-os/machine.json')
+    parser.add_argument('--config', type=Path, default=host.xdg('XDG_CONFIG_HOME') / 'commander-os/machine.json')
     args = parser.parse_args()
     if sys.platform not in ('linux', 'darwin') or os.geteuid() == 0:
         raise ValueError('Run as your normal Linux or macOS user, without sudo.')

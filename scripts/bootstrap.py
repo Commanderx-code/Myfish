@@ -66,7 +66,7 @@ def configure_shell_login(machine, native=False):
         return
     # Keep the profile path: resolving to a versioned store path breaks upgrades.
     candidates = [Path(machine['homeDirectory']) / f'.nix-profile/bin/{shell}',
-                  Path(os.environ.get('XDG_STATE_HOME', str(Path(machine['homeDirectory']) / '.local/state'))) / f'nix/profile/bin/{shell}']
+                  host.xdg('XDG_STATE_HOME', Path(machine['homeDirectory'])) / f'nix/profile/bin/{shell}']
     if native:
         candidates = host.native_shell_paths(shell)
     fish = next((p for p in candidates if os.access(p, os.X_OK)), None)
@@ -83,7 +83,7 @@ def configure_shell_login(machine, native=False):
         return
     if not shutil.which('sudo') or not shutil.which('chsh'):
         raise RuntimeError(f'{shell} is installed, but sudo and chsh are required to set the login shell')
-    state = Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'commander-os'
+    state = host.xdg('XDG_STATE_HOME') / 'commander-os'
     state.mkdir(parents=True, exist_ok=True)
     previous = state / 'previous-shell.txt'
     if not previous.exists():
@@ -109,7 +109,7 @@ def main():
     greetings.add_argument('--default-greeting', dest='greeting', action='store_const', const='Hello, {user} ⚡')
     parser.add_argument('--apply', action='store_true', help='build, then ask before activating')
     parser.add_argument('--init', action='store_true', help='create settings only; do not build')
-    parser.add_argument('--config', type=Path, default=Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'commander-os/machine.json')
+    parser.add_argument('--config', type=Path, default=host.xdg('XDG_CONFIG_HOME') / 'commander-os/machine.json')
     args = parser.parse_args()
     if platform.system() not in ('Linux', 'Darwin') or os.geteuid() == 0:
         raise ValueError('Run as your normal user on Linux or macOS, without sudo')

@@ -309,11 +309,11 @@ def retire_fish_helpers(config, receipt):
 
 def install_native(machine, *, apply, install_missing, configure_login):
     home = Path(machine['homeDirectory'])
-    config = Path(os.environ.get('XDG_CONFIG_HOME', str(home / '.config')))
+    config = host.xdg('XDG_CONFIG_HOME', home)
     manager = ('brew' if shutil.which('brew') else None) if host.is_macos() else next((name for name in ('apt-get', 'dnf', 'pacman') if shutil.which(name)), None)
     if not manager:
         raise RuntimeError('Direct installation requires Homebrew on macOS, or apt, dnf or pacman on Linux')
-    profiles = [Path(os.environ.get('XDG_STATE_HOME', str(home / '.local/state'))) / 'nix/profiles/home-manager',
+    profiles = [host.xdg('XDG_STATE_HOME', home) / 'nix/profiles/home-manager',
                 Path('/nix/var/nix/profiles/per-user') / machine['username'] / 'home-manager']
     if any(p.exists() for p in profiles):
         raise RuntimeError('An existing Home Manager profile was found. Use Home Manager mode, or test direct mode in a separate account/VM.')
