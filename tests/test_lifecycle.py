@@ -255,7 +255,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_damaged_pending_record_stops_with_a_message(self):
         active = self.home / 'generation'
-        for damage in ({}, {'generation': None}, {'generation': str(active), 'recovery': None}):
+        for damage in ({}, {'generation': None}, {'generation': str(active), 'recovery': None}, {'generation': str(active), 'recovery': ''}):
             with self.subTest(damage=damage):
                 config = self.save_pending_receipt(**damage)
                 with patch.object(lifecycle, 'generation', return_value=active), \
