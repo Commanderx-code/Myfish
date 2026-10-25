@@ -209,13 +209,15 @@ def remove_hm(receipt, machine, detach, apply):
             prefix = path.name + '.commander-os-'
             candidates = [p for p in path.parent.glob(prefix + '*') if p.name[len(prefix):].isdigit()]
             if candidates:
-                originals[path] = min(candidates, key=lambda p: int(p.name[len(prefix):]))
+                # Only unmanaged files are backed up, so the newest backup is the file as it was
+                # just before the last install, including edits made between installs.
+                originals[path] = max(candidates, key=lambda p: int(p.name[len(prefix):]))
     print('Remove this entire Home Manager generation and its generation history:', active)
     print('First protect a recovery generation and switch the login shell to:', fallback)
     for path in files:
         print(('Keep editable copy: ' if detach else 'Remove managed link: ') + str(path))
     for path, backup in originals.items():
-        print(f'Restore earlier backup: {backup} -> {path}')
+        print(f'Restore backup: {backup} -> {path}')
     if detach:
         print('Keep current tools, fonts and plugins as a fixed Nix snapshot. Nix stays installed.')
         print('Home Manager stops managing configuration. This does not migrate packages to apt/dnf/pacman/Homebrew.')
