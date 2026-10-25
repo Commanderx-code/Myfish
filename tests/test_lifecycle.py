@@ -213,14 +213,43 @@ class LifecycleTests(unittest.TestCase):
                 target.unlink()
             if command[0] == '/tools/nix-env':
                 raise RuntimeError('profile failure')
+        stderr = io.StringIO()
         with patch.object(lifecycle, 'build_hm', return_value=[Path('/remove'), Path('/retained')]), \
              patch.object(lifecycle, 'set_login') as login, patch.object(lifecycle.subprocess, 'run', side_effect=run), \
-             patch('builtins.input', return_value='DETACH'), contextlib.redirect_stderr(io.StringIO()):
+             patch('builtins.input', return_value='DETACH'), contextlib.redirect_stderr(stderr):
             with self.assertRaises(RuntimeError):
                 lifecycle.remove_hm({'generation': str(active), 'version': 1, 'files': {}, 'packages': []}, {}, True, True)
         login.assert_called_once_with('/bin/bash')
         self.assertTrue(next(install_state.directory().glob('recovery-*/files/.config/fixture')).is_file())
         self.assertEqual(install_state.load()['pending'], 'detach')
+        self.assertRegex(stderr.getvalue(), r'HOME_MANAGER_BACKUP_EXT=commander-recovery-\d+ \S+/generation/activate')
+
+    def pending_receipt(self, generation):
+        machine = {'username': lifecycle.pwd.getpwuid(os.getuid()).pw_name, 'homeDirectory': str(self.home),
+                   'system': 'x86_64-linux', 'features': {'fish': False, 'neovim': False, 'development': False}}
+        install_state.save({'version': 1, 'backend': 'home-manager', 'machine': machine, 'files': {}, 'packages': [],
+                            'generation': str(generation), 'recovery': str(self.home / 'recovery'), 'pending': 'remove'})
+        return self.home / 'no-machine.json'
+
+    def test_interrupted_maintenance_gives_a_fresh_backup_suffix(self):
+        # Home Manager stops when a backup it would write already exists, so a second restore needs a new suffix.
+        config = self.pending_receipt(self.home / 'old-generation')
+        messages = []
+        for _ in range(2):
+            with patch.object(lifecycle, 'generation', return_value=self.home / 'new-generation'), \
+                 self.assertRaises(RuntimeError) as error:
+                lifecycle.discover(config)
+            messages.append(str(error.exception))
+        suffixes = [re.search(r'HOME_MANAGER_BACKUP_EXT=(commander-recovery-\d+) ', m).group(1) for m in messages]
+        self.assertNotEqual(*suffixes)
+        self.assertIn(str(self.home / 'recovery/generation/activate'), messages[0])
+
+    def test_unchanged_generation_clears_the_pending_marker(self):
+        active = self.home / 'generation'
+        config = self.pending_receipt(active)
+        with patch.object(lifecycle, 'generation', return_value=active):
+            receipt, _ = lifecycle.discover(config)
+        self.assertNotIn('pending', receipt)
 
     def test_full_reinstall_preserves_disabled_features(self):
         machine = {'shell': 'bash', 'features': {'fish': False, 'neovim': False, 'development': False}}
